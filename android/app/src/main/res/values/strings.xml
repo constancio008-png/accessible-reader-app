@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Accessible Reader</string>
+    <string name="accessibility_service_description">Accessible Reader is a comprehensive screen reader for blind and visually impaired users. It provides spoken feedback for all screen elements, supports voice commands, and voice dictation. This service can observe your actions, retrieve window content, and perform actions on your behalf to enhance accessibility.</string>
+</resources>
