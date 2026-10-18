@@ -36,27 +36,34 @@ public class MainActivity extends Activity {
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
+        scroll.setBackgroundColor(Color.rgb(10, 17, 32));
         panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(22), dp(24), dp(22), dp(28));
+        panel.setBackgroundColor(Color.rgb(10, 17, 32));
         panel.setFocusableInTouchMode(true);
         scroll.addView(panel);
 
         TextView title = new TextView(this);
         title.setText("Lume");
-        title.setTextSize(34);\n        title.setTextColor(Color.rgb(245, 248, 255));\n        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        title.setTextSize(34);
+        title.setTextColor(Color.rgb(245, 248, 255));
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
         title.setContentDescription("Lume. Central de configurações do leitor de telas.");
         panel.addView(title);
 
         TextView intro = new TextView(this);
         intro.setText("Seu leitor, sua maneira de ouvir. Configure voz, navegação, sons acústicos e vibração.");
-        intro.setTextSize(17);\n        intro.setTextColor(Color.rgb(194, 207, 229));
+        intro.setTextSize(17);
+        intro.setTextColor(Color.rgb(194, 207, 229));
         intro.setPadding(0, dp(10), 0, dp(18));
         panel.addView(intro);
 
         statusText = new TextView(this);
         statusText.setTextSize(16);
-        statusText.setPadding(0, 0, 0, dp(12));
+        statusText.setTextColor(Color.rgb(135, 245, 213));
+        statusText.setPadding(dp(14), dp(14), dp(14), dp(14));
+        statusText.setBackground(rounded(Color.rgb(20, 43, 54), Color.rgb(42, 187, 160), 14));
         panel.addView(statusText);
         updateStatus();
 
@@ -68,7 +75,9 @@ public class MainActivity extends Activity {
         SeekBar rate = new SeekBar(this);
         rate.setMax(22);
         rate.setProgress(Math.round((prefs.getFloat("speech_rate", 0.9f) - 0.5f) / 0.05f));
-        rate.setContentDescription("Velocidade da fala. De muito lenta até rápida.");\n        tintSeekBar(rate);
+        rate.setContentDescription("Velocidade da fala. De muito lenta até rápida.");
+        tintSeekBar(rate);
+        tintSeekBar(rate);
         panel.addView(rate, fullWidth( dp(54)));
         updateRateLabel(rate.getProgress());
         rate.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -90,7 +99,9 @@ public class MainActivity extends Activity {
         SeekBar verbosity = new SeekBar(this);
         verbosity.setMax(2);
         verbosity.setProgress(prefs.getInt("verbosity", 1));
-        verbosity.setContentDescription("Detalhamento da narração. Essencial, padrão ou detalhado.");\n        tintSeekBar(verbosity);
+        verbosity.setContentDescription("Detalhamento da narração. Essencial, padrão ou detalhado.");
+        tintSeekBar(verbosity);
+        tintSeekBar(verbosity);
         panel.addView(verbosity, fullWidth(dp(54)));
         updateVerbosityLabel(verbosity.getProgress());
         verbosity.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -110,7 +121,9 @@ public class MainActivity extends Activity {
         SeekBar volume = new SeekBar(this);
         volume.setMax(100);
         volume.setProgress(Math.round(prefs.getFloat("sound_volume", 0.55f) * 100));
-        volume.setContentDescription("Volume dos efeitos sonoros");\n        tintSeekBar(volume);
+        volume.setContentDescription("Volume dos efeitos sonoros");
+        tintSeekBar(volume);
+        tintSeekBar(volume);
         panel.addView(volume, fullWidth(dp(54)));
         updateVolumeLabel(volume.getProgress());
         volume.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -154,7 +167,11 @@ public class MainActivity extends Activity {
         addHeading("Sobre");
         TextView note = new TextView(this);
         note.setText("Esta é uma versão experimental de um leitor de telas independente. Alguns aplicativos podem expor poucos elementos para acessibilidade, e os gestos podem variar conforme o aparelho. Mantenha um leitor confiável disponível enquanto testa.");
-        note.setTextSize(14);\n        note.setTextColor(Color.rgb(170, 187, 211));\n        note.setBackground(rounded(Color.rgb(19, 29, 48), Color.rgb(48, 67, 94), 14));
+        note.setTextSize(14);
+        note.setTextColor(Color.rgb(170, 187, 211));
+        note.setBackground(rounded(Color.rgb(19, 29, 48), Color.rgb(48, 67, 94), 14));
+        note.setTextColor(Color.rgb(170, 187, 211));
+        note.setBackground(rounded(Color.rgb(19, 29, 48), Color.rgb(48, 67, 94), 14));
         note.setPadding(0, dp(4), 0, dp(18));
         panel.addView(note);
 
@@ -212,7 +229,9 @@ public class MainActivity extends Activity {
         TextView heading = new TextView(this);
         heading.setText(text);
         heading.setTextSize(21);
-        heading.setPadding(0, dp(22), 0, dp(7));
+        heading.setTextColor(Color.rgb(98, 224, 205));
+        heading.setTypeface(null, android.graphics.Typeface.BOLD);
+        heading.setPadding(0, dp(26), 0, dp(9));
         panel.addView(heading);
     }
 
@@ -220,7 +239,8 @@ public class MainActivity extends Activity {
         TextView label = new TextView(this);
         label.setText(text);
         label.setTextSize(16);
-        label.setPadding(0, dp(6), 0, dp(2));
+        label.setTextColor(Color.rgb(235, 241, 252));
+        label.setPadding(0, dp(8), 0, dp(4));
         panel.addView(label);
         return label;
     }
@@ -228,7 +248,11 @@ public class MainActivity extends Activity {
     private void addSwitch(String title, String description, String key, boolean defaultValue) {
         Switch toggle = new Switch(this);
         toggle.setText(title);
-        toggle.setTextSize(17);\n        toggle.setTextColor(Color.rgb(245, 248, 255));\n        toggle.setButtonTintList(ColorStateList.valueOf(Color.rgb(65, 210, 190)));
+        toggle.setTextSize(17);
+        toggle.setTextColor(Color.rgb(245, 248, 255));
+        toggle.setButtonTintList(ColorStateList.valueOf(Color.rgb(65, 210, 190)));
+        toggle.setTextColor(Color.rgb(245, 248, 255));
+        toggle.setButtonTintList(ColorStateList.valueOf(Color.rgb(65, 210, 190)));
         toggle.setContentDescription(title + ". " + description);
         toggle.setChecked(prefs.getBoolean(key, defaultValue));
         toggle.setPadding(0, dp(10), 0, dp(10));
@@ -236,7 +260,8 @@ public class MainActivity extends Activity {
         TextView detail = new TextView(this);
         detail.setText(description);
         detail.setTextSize(14);
-        detail.setPadding(0, 0, 0, dp(4));
+        detail.setTextColor(Color.rgb(170, 187, 211));
+        detail.setPadding(0, 0, 0, dp(8));
         panel.addView(detail);
         toggle.setOnCheckedChangeListener((button, checked) -> {
             prefs.edit().putBoolean(key, checked).apply();
@@ -249,7 +274,15 @@ public class MainActivity extends Activity {
     private void addButton(String title, String description, Runnable action) {
         Button button = new Button(this);
         button.setText(title);
-        button.setTextSize(16);\n        button.setTextColor(Color.rgb(245, 248, 255));\n        button.setBackground(rounded(Color.rgb(25, 40, 65), Color.rgb(49, 190, 174), 16));\n        button.setPadding(dp(18), dp(10), dp(18), dp(10));\n        button.setElevation(dp(2));
+        button.setTextSize(16);
+        button.setTextColor(Color.rgb(245, 248, 255));
+        button.setBackground(rounded(Color.rgb(25, 40, 65), Color.rgb(49, 190, 174), 16));
+        button.setPadding(dp(18), dp(10), dp(18), dp(10));
+        button.setElevation(dp(2));
+        button.setTextColor(Color.rgb(245, 248, 255));
+        button.setBackground(rounded(Color.rgb(25, 40, 65), Color.rgb(49, 190, 174), 16));
+        button.setPadding(dp(18), dp(10), dp(18), dp(10));
+        button.setElevation(dp(2));
         button.setContentDescription(title + ". " + description);
         button.setAllCaps(false);
         button.setMinHeight(dp(60));
@@ -260,7 +293,39 @@ public class MainActivity extends Activity {
         panel.addView(button, params);
     }
 
-    private GradientDrawable rounded(int fill, int stroke, int radiusDp) {\n        GradientDrawable shape = new GradientDrawable();\n        shape.setColor(fill);\n        shape.setCornerRadius(dp(radiusDp));\n        shape.setStroke(dp(1), stroke);\n        return shape;\n    }\n\n    private void tintSeekBar(SeekBar bar) {\n        if (android.os.Build.VERSION.SDK_INT >= 21) {\n            bar.setProgressTintList(ColorStateList.valueOf(Color.rgb(65, 210, 190)));\n            bar.setThumbTintList(ColorStateList.valueOf(Color.rgb(245, 248, 255)));\n            bar.setProgressBackgroundTintList(ColorStateList.valueOf(Color.rgb(57, 75, 102)));\n        }\n    }\n\n    private LinearLayout.LayoutParams fullWidth(int height) {
+    private GradientDrawable rounded(int fill, int stroke, int radiusDp) {
+        GradientDrawable shape = new GradientDrawable();
+        shape.setColor(fill);
+        shape.setCornerRadius(dp(radiusDp));
+        shape.setStroke(dp(1), stroke);
+        return shape;
+    }
+
+    private void tintSeekBar(SeekBar bar) {
+        if (android.os.Build.VERSION.SDK_INT >= 21) {
+            bar.setProgressTintList(ColorStateList.valueOf(Color.rgb(65, 210, 190)));
+            bar.setThumbTintList(ColorStateList.valueOf(Color.rgb(245, 248, 255)));
+            bar.setProgressBackgroundTintList(ColorStateList.valueOf(Color.rgb(57, 75, 102)));
+        }
+    }
+
+    private GradientDrawable rounded(int fill, int stroke, int radiusDp) {
+        GradientDrawable shape = new GradientDrawable();
+        shape.setColor(fill);
+        shape.setCornerRadius(dp(radiusDp));
+        shape.setStroke(dp(1), stroke);
+        return shape;
+    }
+
+    private void tintSeekBar(SeekBar bar) {
+        if (android.os.Build.VERSION.SDK_INT >= 21) {
+            bar.setProgressTintList(ColorStateList.valueOf(Color.rgb(65, 210, 190)));
+            bar.setThumbTintList(ColorStateList.valueOf(Color.rgb(245, 248, 255)));
+            bar.setProgressBackgroundTintList(ColorStateList.valueOf(Color.rgb(57, 75, 102)));
+        }
+    }
+
+    private LinearLayout.LayoutParams fullWidth(int height) {
         return new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, height);
     }
 }
