@@ -176,7 +176,7 @@ public class CacadorAccessibilityService extends AccessibilityService {
      * Touch exploration: procura o elemento mais profundo sob o dedo e anuncia-o.
      * O Android só entrega estes eventos quando o serviço recebeu a permissão de exploração por toque.
      */
-    @Override protected void onMotionEvent(MotionEvent event) {
+    @Override public void onMotionEvent(MotionEvent event) {
         if (event == null) return;
         int action = event.getActionMasked();
         if (action == MotionEvent.ACTION_HOVER_ENTER || action == MotionEvent.ACTION_HOVER_MOVE
