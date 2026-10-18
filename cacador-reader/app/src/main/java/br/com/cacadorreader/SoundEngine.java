@@ -2,6 +2,8 @@ package br.com.cacadorreader;
 import android.content.Context;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
+import android.os.Handler;
+import android.os.Looper;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
