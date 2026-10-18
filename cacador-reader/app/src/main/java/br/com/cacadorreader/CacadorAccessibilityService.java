@@ -54,7 +54,11 @@ public class CacadorAccessibilityService extends AccessibilityService {
         info.feedbackType = AccessibilityServiceInfo.FEEDBACK_SPOKEN;
         info.notificationTimeout = 100;
         info.flags |= AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
-                | AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS;
+                | AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+                | AccessibilityServiceInfo.FLAG_REQUEST_TOUCH_EXPLORATION_MODE;
+        if (Build.VERSION.SDK_INT >= 30) {
+            info.flags |= AccessibilityServiceInfo.FLAG_SERVICE_HANDLES_DOUBLE_TAP;
+        }
         setServiceInfo(info);
     }
 
@@ -113,6 +117,22 @@ public class CacadorAccessibilityService extends AccessibilityService {
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
         if (event == null) return;
         int type = event.getEventType();
+        if (type == AccessibilityEvent.TYPE_VIEW_HOVER_ENTER || type == AccessibilityEvent.TYPE_VIEW_HOVER_EXIT) {
+            if (type == AccessibilityEvent.TYPE_VIEW_HOVER_EXIT) {
+                lastExploredLabel = "";
+                return;
+            }
+            AccessibilityNodeInfo hovered = event.getSource();
+            if (hovered != null) {
+                String label = labelFor(hovered);
+                if (!label.isEmpty() && !label.equals(lastExploredLabel)) {
+                    lastExploredLabel = label;
+                    hovered.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS);
+                    announceItem(label, hovered);
+                }
+            }
+            return;
+        }
         if (type == AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED || type == AccessibilityEvent.TYPE_VIEW_FOCUSED) {
             AccessibilityNodeInfo source = event.getSource();
             if (source != null) announceItem(labelFor(source), source);
