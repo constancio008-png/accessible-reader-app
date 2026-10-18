@@ -1,10 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeViewFocused|typeViewClicked|typeWindowStateChanged|typeWindowContentChanged|typeAnnouncement"
+    android:accessibilityEventTypes="typeViewFocused|typeViewAccessibilityFocused|typeViewClicked|typeWindowStateChanged|typeWindowContentChanged|typeAnnouncement"
     android:accessibilityFeedbackType="feedbackSpoken"
-    android:notificationTimeout="80"
+    android:notificationTimeout="100"
     android:canRetrieveWindowContent="true"
     android:canPerformGestures="true"
     android:canRequestTouchExplorationMode="true"
     android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows|flagRequestTouchExplorationMode"
     android:description="@string/service_description"
-    android:settingsActivity="br.com.cacadorreader.MainActivity"/>
+    android:settingsActivity="br.com.cacadorreader.MainActivity" />
