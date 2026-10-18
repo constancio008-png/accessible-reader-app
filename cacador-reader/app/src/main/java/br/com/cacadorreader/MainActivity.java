@@ -1,6 +1,7 @@
 package br.com.cacadorreader;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -11,6 +12,8 @@ import android.graphics.drawable.GradientDrawable;
 import android.content.res.ColorStateList;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
@@ -114,8 +117,24 @@ public class MainActivity extends Activity {
             @Override public void onStopTrackingTouch(SeekBar bar) { speak("Estilo de narração atualizado."); }
         });
 
-        addHeading("Sons acústicos próprios");
-        addSwitch("Efeitos sonoros de navegação", "Sons suaves criados pelo próprio aplicativo; não são sons de videogame.",
+        addHeading("Esquemas de som");
+        addLabel("Escolha uma identidade sonora para a navegação.");
+        Spinner soundPacks = new Spinner(this);
+        soundPacks.setContentDescription("Esquemas de som. Escolha entre Suave, Navegação, Clássico e Vivo.");
+        ArrayAdapter<String> packAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, SoundEngine.PACK_NAMES);
+        packAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        soundPacks.setAdapter(packAdapter);
+        soundPacks.setSelection(Math.max(0, Math.min(SoundEngine.PACK_NAMES.length - 1, prefs.getInt("sound_pack", 0))));
+        panel.addView(soundPacks, fullWidth(dp(58)));
+        soundPacks.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                prefs.edit().putInt("sound_pack", position).apply();
+                SoundEngine.configure(position, prefs.getFloat("sound_volume", 0.55f));
+                applySettings();
+            }
+            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+        });
+        addSwitch("Efeitos sonoros de navegação", "Sons externos baixados e guardados no aparelho após o primeiro uso.",
                 "sounds_enabled", true);
         volumeText = addLabel("");
         SeekBar volume = new SeekBar(this);
@@ -183,6 +202,17 @@ public class MainActivity extends Activity {
         });
 
         setContentView(scroll);
+        showWelcomeIfNeeded();
+    }
+
+    private void showWelcomeIfNeeded() {
+        if (prefs.getBoolean("welcome_shown", false)) return;
+        new AlertDialog.Builder(this)
+            .setTitle("Bem-vindo ao Lume")
+            .setMessage("O Lume é um leitor de telas experimental. Explore as configurações para escolher a voz, o nível de detalhes e um dos quatro esquemas de som. Com o serviço ativado, deslize para a direita para o próximo item, para a esquerda para voltar e toque duas vezes para ativar. Mantenha seu leitor principal disponível enquanto testa esta versão Beta.")
+            .setPositiveButton("Começar", (dialog, which) -> prefs.edit().putBoolean("welcome_shown", true).apply())
+            .setOnCancelListener(dialog -> prefs.edit().putBoolean("welcome_shown", true).apply())
+            .show();
     }
 
     @Override protected void onResume() {
