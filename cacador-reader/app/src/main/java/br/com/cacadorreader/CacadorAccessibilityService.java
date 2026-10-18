@@ -10,6 +10,7 @@ import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
 import android.speech.tts.TextToSpeech;
+import android.media.AudioAttributes;
 import android.view.View;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -33,12 +34,14 @@ public class CacadorAccessibilityService extends AccessibilityService {
         super.onServiceConnected();
         instance = this;
         loadSettings();
+        SoundEngine.init(this);
         tts = new TextToSpeech(this, status -> {
             if (status == TextToSpeech.SUCCESS) {
                 int result = tts.setLanguage(new Locale("pt", "BR"));
                 ttsReady = result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED;
                 if (ttsReady) {
                     tts.setSpeechRate(speechRate);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) tts.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build());
                     speak("Lume ativado. Deslize para a direita para o próximo item e para a esquerda para voltar.");
                     cue(SoundEngine.ACTIVATE);
                 }
@@ -69,6 +72,7 @@ public class CacadorAccessibilityService extends AccessibilityService {
         hapticsEnabled = p.getBoolean("haptics_enabled", true);
         soundVolume = p.getFloat("sound_volume", 0.55f);
         verbosity = p.getInt("verbosity", 1);
+        SoundEngine.configure(p.getInt("sound_pack", 0), soundVolume);
     }
 
     public void applySettings() {
