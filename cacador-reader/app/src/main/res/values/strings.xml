@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Caçador Reader</string>
+    <string name="service_description">Lê elementos da interface e oferece comandos falados de acessibilidade.</string>
+</resources>
