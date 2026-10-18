@@ -1,21 +1,19 @@
-# Lume 0.5.0-experimental
+# Lume 1.0.0-beta.1
 
-**Status:** pré-lançamento experimental — testes em aparelhos reais ainda necessários.
+**Status:** Beta pública em validação. A compilação automatizada passou, mas a navegação ainda precisa ser testada em aparelhos reais. Não substitua nem desative seu leitor principal.
 
 ## Destaques
-- Nome público do aplicativo alterado para **Lume**.
-- Tela inicial, mensagens faladas, descrições de acessibilidade e mensagens de serviço atualizadas com a nova identidade.
-- Documentação reescrita para descrever o estado real do projeto e suas limitações.
-- Artefato de compilação do GitHub Actions renomeado para `lume-debug-apk`.
-- Número de versão atualizado para `0.5.0-experimental`.
+- Interface redesenhada com tema escuro, alto contraste, controles maiores e botões destacados.
+- Configuração do serviço ampliada para receber eventos de exploração por toque.
+- Tratamento de eventos de entrada e saída da exploração para tentar anunciar o elemento tocado.
+- Toque duplo encaminhado ao serviço nas versões compatíveis do Android.
+- `versionCode` 6 e `versionName` `1.0.0-beta.1`; pacote mantido como `br.com.cacadorreader`.
 
-## O que ainda não está resolvido
-- A navegação por gestos, exploração por toque e gerenciamento de foco ainda precisam de correções e testes em aparelhos reais.
-- Os sons atuais continuam sendo gerados pelo aplicativo. A próxima etapa é avaliar bibliotecas de efeitos sonoros de acessibilidade e verificar cuidadosamente suas licenças.
-- O estudo do código do TalkBack e de outros leitores de código aberto ainda não foi integrado nesta versão.
-- O repositório ainda não tem uma licença de código definida.
+## Pendências importantes
+- Validar os gestos em aparelhos reais: tocar para ouvir, deslizar à direita/esquerda para próximo/anterior, deslizar para cima/baixo para rolar e toque duplo para ativar.
+- Os efeitos sonoros ainda são gerados pelo app; a biblioteca de sons reais e sua licença continuam pendentes.
+- O repositório ainda não tem licença própria definida.
+- **Atualização sobre uma versão instalada:** o mesmo nome de pacote não basta; o Android também exige a mesma chave de assinatura. Como o CI pode gerar assinaturas de depuração diferentes entre execuções, não é possível garantir a atualização por cima da versão anterior até configurar uma chave persistente e segura. Não desinstale a versão anterior sem verificar isso.
 
-## Instalação para testes
-Acesse [GitHub Actions](https://github.com/constancio008-png/accessible-reader-app/actions), abra a execução mais recente que terminou com sucesso e baixe o artefato `lume-debug-apk`.
-
-**Aviso:** esta versão não é um substituto confiável do TalkBack. Mantenha seu leitor de telas principal disponível durante os testes.
+## APK de teste
+Acesse [GitHub Actions](https://github.com/constancio008-png/accessible-reader-app/actions), abra a execução mais recente concluída com sucesso e baixe `lume-debug-apk` em Artifacts.
