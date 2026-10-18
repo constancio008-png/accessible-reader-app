@@ -3,6 +3,8 @@ package br.com.cacadorreader;
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.content.SharedPreferences;
+import android.graphics.Rect;
+import android.view.MotionEvent;
 import android.os.Build;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
@@ -25,6 +27,7 @@ public class CacadorAccessibilityService extends AccessibilityService {
     private String lastSpoken = "";
     private long lastSpokenAt = 0L;
     private long lastCueAt = 0L;
+    private String lastExploredLabel = "";
 
     @Override public void onServiceConnected() {
         super.onServiceConnected();
@@ -166,6 +169,45 @@ public class CacadorAccessibilityService extends AccessibilityService {
         lastSpoken = message;
         lastSpokenAt = now;
         return true;
+    }
+
+
+    /**
+     * Touch exploration: procura o elemento mais profundo sob o dedo e anuncia-o.
+     * O Android só entrega estes eventos quando o serviço recebeu a permissão de exploração por toque.
+     */
+    @Override protected void onMotionEvent(MotionEvent event) {
+        if (event == null) return;
+        int action = event.getActionMasked();
+        if (action == MotionEvent.ACTION_HOVER_ENTER || action == MotionEvent.ACTION_HOVER_MOVE
+                || action == MotionEvent.ACTION_MOVE) {
+            AccessibilityNodeInfo root = getRootInActiveWindow();
+            if (root != null) {
+                AccessibilityNodeInfo target = findNodeAt(root, (int)event.getX(), (int)event.getY());
+                if (target != null) {
+                    String label = labelFor(target);
+                    if (!label.isEmpty() && !label.equals(lastExploredLabel)) {
+                        lastExploredLabel = label;
+                        target.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS);
+                        announceItem(label, target);
+                    }
+                }
+            }
+        } else if (action == MotionEvent.ACTION_HOVER_EXIT) {
+            lastExploredLabel = "";
+        }
+    }
+
+    private AccessibilityNodeInfo findNodeAt(AccessibilityNodeInfo node, int x, int y) {
+        if (node == null) return null;
+        Rect bounds = new Rect();
+        node.getBoundsInScreen(bounds);
+        if (!bounds.contains(x, y)) return null;
+        for (int i = node.getChildCount() - 1; i >= 0; i--) {
+            AccessibilityNodeInfo child = findNodeAt(node.getChild(i), x, y);
+            if (child != null) return child;
+        }
+        return node;
     }
 
     @Override protected boolean onGesture(int gestureId) {
