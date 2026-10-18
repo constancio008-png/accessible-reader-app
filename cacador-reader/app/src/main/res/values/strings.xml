@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">Caçador Reader</string>
+    <string name="app_name">Lume</string>
     <string name="service_description">Leitor de telas experimental com narração em português, navegação por gestos, efeitos acústicos próprios e configurações acessíveis.</string>
 </resources>
