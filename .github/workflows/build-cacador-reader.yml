@@ -33,7 +33,6 @@ jobs:
       - name: Instalar pacotes do Android SDK
         shell: bash
         run: |
-          yes | sdkmanager --licenses
           sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
       - name: Compilar APK de depuração
         working-directory: cacador-reader
