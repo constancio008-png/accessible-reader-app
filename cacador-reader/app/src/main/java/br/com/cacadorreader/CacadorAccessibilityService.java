@@ -2,7 +2,11 @@ package br.com.cacadorreader;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
+import android.content.SharedPreferences;
 import android.os.Build;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.os.VibratorManager;
 import android.speech.tts.TextToSpeech;
 import android.view.View;
 import android.view.accessibility.AccessibilityEvent;
@@ -13,30 +17,56 @@ public class CacadorAccessibilityService extends AccessibilityService {
     public static CacadorAccessibilityService instance;
     private TextToSpeech tts;
     private boolean ttsReady = false;
-    private float speechRate = 1.0f;
+    private float speechRate = 0.9f;
+    private boolean soundsEnabled = true;
+    private boolean hapticsEnabled = true;
+    private float soundVolume = 0.55f;
+    private int verbosity = 1;
     private String lastSpoken = "";
     private long lastSpokenAt = 0L;
+    private long lastCueAt = 0L;
 
     @Override public void onServiceConnected() {
         super.onServiceConnected();
         instance = this;
+        loadSettings();
         tts = new TextToSpeech(this, status -> {
             if (status == TextToSpeech.SUCCESS) {
                 int result = tts.setLanguage(new Locale("pt", "BR"));
                 ttsReady = result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED;
-                if (ttsReady) { tts.setSpeechRate(speechRate); speak("Caçador Reader ativado."); }
+                if (ttsReady) {
+                    tts.setSpeechRate(speechRate);
+                    speak("Caçador Reader ativado. Deslize para a direita para o próximo item e para a esquerda para voltar.");
+                    cue(SoundEngine.ACTIVATE);
+                }
             }
         });
         AccessibilityServiceInfo info = getServiceInfo();
         info.eventTypes = AccessibilityEvent.TYPE_VIEW_FOCUSED
                 | AccessibilityEvent.TYPE_VIEW_CLICKED
                 | AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
-                | AccessibilityEvent.TYPE_ANNOUNCEMENT;
+                | AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+                | AccessibilityEvent.TYPE_ANNOUNCEMENT
+                | AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED;
         info.feedbackType = AccessibilityServiceInfo.FEEDBACK_SPOKEN;
-        info.notificationTimeout = 80;
+        info.notificationTimeout = 100;
         info.flags |= AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
                 | AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS;
         setServiceInfo(info);
+    }
+
+    private void loadSettings() {
+        SharedPreferences p = getSharedPreferences("cacador_settings", MODE_PRIVATE);
+        speechRate = p.getFloat("speech_rate", 0.9f);
+        soundsEnabled = p.getBoolean("sounds_enabled", true);
+        hapticsEnabled = p.getBoolean("haptics_enabled", true);
+        soundVolume = p.getFloat("sound_volume", 0.55f);
+        verbosity = p.getInt("verbosity", 1);
+    }
+
+    public void applySettings() {
+        loadSettings();
+        if (tts != null && ttsReady) tts.setSpeechRate(speechRate);
     }
 
     public void setSpeechRate(float rate) {
@@ -53,33 +83,86 @@ public class CacadorAccessibilityService extends AccessibilityService {
         }
     }
 
+    private void cue(int kind) {
+        if (!soundsEnabled) return;
+        long now = System.currentTimeMillis();
+        if (now - lastCueAt < 45) return;
+        lastCueAt = now;
+        SoundEngine.play(kind, soundVolume);
+    }
+
+    private void vibrate(long duration) {
+        if (!hapticsEnabled) return;
+        try {
+            if (Build.VERSION.SDK_INT >= 31) {
+                VibratorManager manager = (VibratorManager)getSystemService(VIBRATOR_MANAGER_SERVICE);
+                if (manager != null) manager.getDefaultVibrator().vibrate(VibrationEffect.createOneShot(duration, 70));
+            } else {
+                Vibrator vibrator = (Vibrator)getSystemService(VIBRATOR_SERVICE);
+                if (vibrator != null) {
+                    if (Build.VERSION.SDK_INT >= 26) vibrator.vibrate(VibrationEffect.createOneShot(duration, 70));
+                    else vibrator.vibrate(duration);
+                }
+            }
+        } catch (Exception ignored) {}
+    }
+
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
         if (event == null) return;
         int type = event.getEventType();
-        if (type == AccessibilityEvent.TYPE_VIEW_FOCUSED
-                || type == AccessibilityEvent.TYPE_VIEW_CLICKED
-                || type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
-                || type == AccessibilityEvent.TYPE_ANNOUNCEMENT) {
-            CharSequence text = event.getContentDescription();
-            if (text == null || text.length() == 0) text = event.getText().isEmpty() ? null : event.getText().get(0);
-            if (text == null && event.getSource() != null) {
-                AccessibilityNodeInfo source = event.getSource();
-                CharSequence desc = source.getContentDescription();
-                CharSequence nodeText = source.getText();
-                if (desc != null && desc.length() > 0) text = desc;
-                else if (nodeText != null && nodeText.length() > 0) text = nodeText;
-                else if (source.isClickable()) text = "Botão";
-            }
-            if (text != null) {
-                String message = text.toString().trim();
-                if (!message.isEmpty() && shouldSpeak(message)) speak(message);
-            }
+        if (type == AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED || type == AccessibilityEvent.TYPE_VIEW_FOCUSED) {
+            AccessibilityNodeInfo source = event.getSource();
+            if (source != null) announceItem(labelFor(source), source);
+            return;
         }
+        if (type == AccessibilityEvent.TYPE_VIEW_CLICKED) {
+            cue(SoundEngine.ACTIVATE);
+            vibrate(22);
+            if (verbosity >= 2) speak("Ativado.");
+            return;
+        }
+        if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            CharSequence title = event.getContentDescription();
+            if (title == null || title.length() == 0) title = event.getText().isEmpty() ? null : event.getText().get(0);
+            if (title != null && !title.toString().trim().isEmpty()) {
+                String message = title.toString().trim();
+                if (shouldSpeak(message)) { cue(SoundEngine.FOCUS); speak(message); }
+            }
+            return;
+        }
+        if (type == AccessibilityEvent.TYPE_ANNOUNCEMENT) {
+            CharSequence text = event.getText().isEmpty() ? event.getContentDescription() : event.getText().get(0);
+            if (text != null && shouldSpeak(text.toString())) speak(text.toString());
+        }
+    }
+
+    private String labelFor(AccessibilityNodeInfo node) {
+        CharSequence text = node.getContentDescription();
+        if (text == null || text.length() == 0) text = node.getText();
+        String label = text == null ? "" : text.toString().trim();
+        if (!label.isEmpty()) return label;
+        if (node.isCheckable()) return node.isChecked() ? "Marcado" : "Desmarcado";
+        if (node.isClickable()) return "Botão sem descrição";
+        if (node.isScrollable()) return "Área rolável";
+        return verbosity >= 2 ? "Elemento" : "";
+    }
+
+    private void announceItem(String message, AccessibilityNodeInfo node) {
+        if (message.isEmpty() || !shouldSpeak(message)) return;
+        cue(SoundEngine.FOCUS);
+        vibrate(12);
+        if (verbosity == 0 && !node.isClickable() && !node.isCheckable()) return;
+        String output = message;
+        if (verbosity >= 2) {
+            if (node.isCheckable()) output += node.isChecked() ? ", marcado" : ", desmarcado";
+            if (node.isClickable()) output += ", toque duas vezes para ativar";
+        }
+        speak(output);
     }
 
     private boolean shouldSpeak(String message) {
         long now = System.currentTimeMillis();
-        if (message.equals(lastSpoken) && now - lastSpokenAt < 900) return false;
+        if (message.equals(lastSpoken) && now - lastSpokenAt < 700) return false;
         lastSpoken = message;
         lastSpokenAt = now;
         return true;
@@ -87,71 +170,76 @@ public class CacadorAccessibilityService extends AccessibilityService {
 
     @Override protected boolean onGesture(int gestureId) {
         switch (gestureId) {
-            case GESTURE_SWIPE_UP:
-                moveFocus(true);
-                return true;
-            case GESTURE_SWIPE_DOWN:
-                moveFocus(false);
-                return true;
-            case GESTURE_SWIPE_LEFT:
-                performGlobalAction(GLOBAL_ACTION_BACK);
-                speak("Voltando à tela anterior.");
-                return true;
-            case GESTURE_SWIPE_RIGHT:
-                AccessibilityNodeInfo root = getRootInActiveWindow();
-                if (root != null) {
-                    AccessibilityNodeInfo focused = root.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY);
-                    if (focused != null) {
-                        CharSequence text = focused.getContentDescription();
-                        if (text == null || text.length() == 0) text = focused.getText();
-                        if (text != null) speak(text.toString());
-                        else speak("Elemento selecionado.");
-                    } else speak("Nenhum elemento selecionado.");
-                } else speak("Tela indisponível.");
-                return true;
-            default:
-                return super.onGesture(gestureId);
+            case GESTURE_SWIPE_RIGHT: moveFocus(true); return true;
+            case GESTURE_SWIPE_LEFT: moveFocus(false); return true;
+            case GESTURE_SWIPE_UP: scrollOrMove(false); return true;
+            case GESTURE_SWIPE_DOWN: scrollOrMove(true); return true;
+            case GESTURE_DOUBLE_TAP: activateFocused(); return true;
+            case GESTURE_DOUBLE_TAP_AND_HOLD: speakGestureHelp(); return true;
+            default: return super.onGesture(gestureId);
         }
     }
 
     private void moveFocus(boolean forward) {
         AccessibilityNodeInfo root = getRootInActiveWindow();
-        if (root == null) { speak("Tela indisponível."); return; }
+        if (root == null) { speak("Não há uma tela disponível para navegar."); cue(SoundEngine.BOUNDARY); return; }
         AccessibilityNodeInfo current = root.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY);
+        if (current == null) current = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
         if (current == null) current = root;
-        current.performAction(current.isAccessibilityFocused()
-                ? AccessibilityNodeInfo.ACTION_CLEAR_ACCESSIBILITY_FOCUS
-                : AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS);
-        if (forward) {
-            AccessibilityNodeInfo next = current.focusSearch(View.FOCUS_FORWARD);
-            if (next != null) {
-                next.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS);
-                CharSequence desc = next.getContentDescription();
-                CharSequence txt = next.getText();
-                speak(desc != null && desc.length() > 0 ? desc.toString()
-                        : (txt != null && txt.length() > 0 ? txt.toString()
-                        : (next.isClickable() ? "Botão" : "Elemento")));
-                return;
-            }
-            speak("Fim da tela.");
-        } else {
-            AccessibilityNodeInfo prev = current.focusSearch(View.FOCUS_BACKWARD);
-            if (prev != null) {
-                prev.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS);
-                CharSequence desc = prev.getContentDescription();
-                CharSequence txt = prev.getText();
-                speak(desc != null && desc.length() > 0 ? desc.toString()
-                        : (txt != null && txt.length() > 0 ? txt.toString()
-                        : (prev.isClickable() ? "Botão" : "Elemento")));
-                return;
-            }
-            speak("Início da tela.");
+        AccessibilityNodeInfo next = current.focusSearch(forward ? View.FOCUS_FORWARD : View.FOCUS_BACKWARD);
+        if (next == null || next.equals(current)) {
+            cue(SoundEngine.BOUNDARY); vibrate(35);
+            speak(forward ? "Fim dos itens desta tela." : "Início dos itens desta tela.");
+            return;
         }
+        current.performAction(AccessibilityNodeInfo.ACTION_CLEAR_ACCESSIBILITY_FOCUS);
+        next.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS);
+        String label = labelFor(next);
+        announceItem(label.isEmpty() ? "Elemento" : label, next);
     }
 
-    @Override public void onInterrupt() {
-        if (tts != null) tts.stop();
+    private void scrollOrMove(boolean down) {
+        AccessibilityNodeInfo root = getRootInActiveWindow();
+        if (root == null) { speak("Tela indisponível."); return; }
+        AccessibilityNodeInfo scrollable = findScrollable(root);
+        if (scrollable != null && scrollable.performAction(down
+                ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)) {
+            cue(SoundEngine.BACK); vibrate(18);
+            if (verbosity >= 1) speak(down ? "Rolando para baixo." : "Rolando para cima.");
+            return;
+        }
+        AccessibilityNodeInfo focused = root.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY);
+        if (focused != null) moveFocus(down);
+        else speak("Nenhuma área rolável encontrada.");
     }
+
+    private AccessibilityNodeInfo findScrollable(AccessibilityNodeInfo node) {
+        if (node == null) return null;
+        if (node.isScrollable()) return node;
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo found = findScrollable(node.getChild(i));
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    private void activateFocused() {
+        AccessibilityNodeInfo root = getRootInActiveWindow();
+        if (root == null) { speak("Tela indisponível."); return; }
+        AccessibilityNodeInfo focused = root.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY);
+        if (focused != null && focused.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+            cue(SoundEngine.ACTIVATE); vibrate(25);
+        } else { cue(SoundEngine.BOUNDARY); speak("Não foi possível ativar este item."); }
+    }
+
+    public void speakGestureHelp() {
+        speak("Ajuda do Caçador Reader. Deslize para a direita para ir ao próximo item. Deslize para a esquerda para voltar ao item anterior. Deslize para cima ou para baixo para rolar a área da tela. Toque duas vezes para ativar o item selecionado. Toque duas vezes e segure para ouvir esta ajuda.");
+        cue(SoundEngine.ACTIVATE);
+    }
+
+    public void testSound() { cue(SoundEngine.ACTIVATE); vibrate(24); }
+
+    @Override public void onInterrupt() { if (tts != null) tts.stop(); }
 
     @Override public void onDestroy() {
         instance = null;
