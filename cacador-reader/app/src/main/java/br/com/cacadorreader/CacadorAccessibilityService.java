@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.os.Build;
 import android.speech.tts.TextToSpeech;
+import android.view.View;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import java.util.Locale;
@@ -118,11 +119,11 @@ public class CacadorAccessibilityService extends AccessibilityService {
         if (root == null) { speak("Tela indisponível."); return; }
         AccessibilityNodeInfo current = root.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY);
         if (current == null) current = root;
-        current.performAction(forward
-                ? AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS
-                : AccessibilityNodeInfo.ACTION_CLEAR_ACCESSIBILITY_FOCUS);
+        current.performAction(current.isAccessibilityFocused()
+                ? AccessibilityNodeInfo.ACTION_CLEAR_ACCESSIBILITY_FOCUS
+                : AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS);
         if (forward) {
-            AccessibilityNodeInfo next = current.focusSearch(AccessibilityNodeInfo.FOCUS_FORWARD);
+            AccessibilityNodeInfo next = current.focusSearch(View.FOCUS_FORWARD);
             if (next != null) {
                 next.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS);
                 CharSequence desc = next.getContentDescription();
@@ -134,7 +135,7 @@ public class CacadorAccessibilityService extends AccessibilityService {
             }
             speak("Fim da tela.");
         } else {
-            AccessibilityNodeInfo prev = current.focusSearch(AccessibilityNodeInfo.FOCUS_BACKWARD);
+            AccessibilityNodeInfo prev = current.focusSearch(View.FOCUS_BACKWARD);
             if (prev != null) {
                 prev.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS);
                 CharSequence desc = prev.getContentDescription();
