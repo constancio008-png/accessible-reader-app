@@ -26,7 +26,7 @@ public final class SoundEngine {
   IO.execute(()->{try{
    File f=new File(app.getCacheDir(),"lume_sfx_"+path.replace('/','_'));
    if(!f.exists()||f.length()<500)download(path,f);
-   app.getMainExecutor().execute(()->playFile(f,gain));
+   new Handler(Looper.getMainLooper()).post(()->playFile(f,gain));
   }catch(Exception ignored){}});
  }
  private static String pathFor(int p,int k){
