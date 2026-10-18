@@ -39,7 +39,7 @@ public class CacadorAccessibilityService extends AccessibilityService {
                 ttsReady = result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED;
                 if (ttsReady) {
                     tts.setSpeechRate(speechRate);
-                    speak("Caçador Reader ativado. Deslize para a direita para o próximo item e para a esquerda para voltar.");
+                    speak("Lume ativado. Deslize para a direita para o próximo item e para a esquerda para voltar.");
                     cue(SoundEngine.ACTIVATE);
                 }
             }
@@ -80,7 +80,7 @@ public class CacadorAccessibilityService extends AccessibilityService {
     public void speak(String text) {
         if (text == null || text.trim().isEmpty() || !ttsReady) return;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "cacador-" + System.currentTimeMillis());
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "lume-" + System.currentTimeMillis());
         } else {
             tts.speak(text, TextToSpeech.QUEUE_FLUSH, null);
         }
@@ -275,7 +275,7 @@ public class CacadorAccessibilityService extends AccessibilityService {
     }
 
     public void speakGestureHelp() {
-        speak("Ajuda do Caçador Reader. Deslize para a direita para ir ao próximo item. Deslize para a esquerda para voltar ao item anterior. Deslize para cima ou para baixo para rolar a área da tela. Toque duas vezes para ativar o item selecionado. Toque duas vezes e segure para ouvir esta ajuda.");
+        speak("Ajuda do Lume. Deslize para a direita para ir ao próximo item. Deslize para a esquerda para voltar ao item anterior. Deslize para cima ou para baixo para rolar a área da tela. Toque duas vezes para ativar o item selecionado. Toque duas vezes e segure para ouvir esta ajuda.");
         cue(SoundEngine.ACTIVATE);
     }
 
