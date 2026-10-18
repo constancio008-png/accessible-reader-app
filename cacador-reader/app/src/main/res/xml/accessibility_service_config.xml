@@ -6,6 +6,6 @@
     android:canRetrieveWindowContent="true"
     android:canPerformGestures="true"
     android:canRequestTouchExplorationMode="true"
-    android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows|flagRequestTouchExplorationMode|flagServiceHandlesDoubleTap"
+    android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows|flagRequestTouchExplorationMode|flagServiceHandlesDoubleTap|flagEnableAccessibilityVolume"
     android:description="@string/service_description"
     android:settingsActivity="br.com.cacadorreader.MainActivity" />
