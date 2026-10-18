@@ -40,9 +40,9 @@ public class MainActivity extends Activity {
         scroll.addView(panel);
 
         TextView title = new TextView(this);
-        title.setText("Caçador Reader");
+        title.setText("Lume");
         title.setTextSize(30);
-        title.setContentDescription("Caçador Reader. Central de configurações do leitor de telas.");
+        title.setContentDescription("Lume. Central de configurações do leitor de telas.");
         panel.addView(title);
 
         TextView intro = new TextView(this);
@@ -126,7 +126,7 @@ public class MainActivity extends Activity {
         addButton("Ouvir demonstração dos sons", "Toca o efeito acústico de confirmação", () -> {
             CacadorAccessibilityService s = CacadorAccessibilityService.instance;
             if (s != null) s.testSound();
-            else Toast.makeText(this, "Ative o Caçador Reader primeiro.", Toast.LENGTH_LONG).show();
+            else Toast.makeText(this, "Ative o Lume primeiro.", Toast.LENGTH_LONG).show();
         });
 
         addHeading("Acessibilidade tátil");
@@ -134,16 +134,16 @@ public class MainActivity extends Activity {
                 "haptics_enabled", true);
 
         addHeading("Gestos e ajuda");
-        addButton("Ouvir guia completo de gestos", "Lê os gestos disponíveis no Caçador Reader", () -> {
+        addButton("Ouvir guia completo de gestos", "Lê os gestos disponíveis no Lume", () -> {
             CacadorAccessibilityService s = CacadorAccessibilityService.instance;
             if (s != null) s.speakGestureHelp();
             else speak("Deslize para a direita para ir ao próximo item. Deslize para a esquerda para voltar. Deslize para cima ou para baixo para rolar. Toque duas vezes para ativar.");
         });
         addButton("Testar a voz", "Faz o leitor falar uma frase de teste", () ->
-                speak("Teste de voz do Caçador Reader. A fala está funcionando."));
+                speak("Teste de voz do Lume. A fala está funcionando."));
         addButton("Repetir estado do leitor", "Informa se o serviço está ativo", () -> {
             if (CacadorAccessibilityService.instance != null)
-                speak("O serviço do Caçador Reader está ativo.");
+                speak("O serviço do Lume está ativo.");
             else
                 speak("O serviço ainda não está ativo. Use o botão Ativar ou gerenciar o leitor.");
         });
