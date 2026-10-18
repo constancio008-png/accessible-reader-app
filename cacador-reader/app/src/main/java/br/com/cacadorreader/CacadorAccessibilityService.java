@@ -60,7 +60,8 @@ public class CacadorAccessibilityService extends AccessibilityService {
         info.notificationTimeout = 100;
         info.flags |= AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
                 | AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
-                | AccessibilityServiceInfo.FLAG_REQUEST_TOUCH_EXPLORATION_MODE;
+                | AccessibilityServiceInfo.FLAG_REQUEST_TOUCH_EXPLORATION_MODE
+                | AccessibilityServiceInfo.FLAG_ENABLE_ACCESSIBILITY_VOLUME;
         if (Build.VERSION.SDK_INT >= 30) {
             info.flags |= AccessibilityServiceInfo.FLAG_SERVICE_HANDLES_DOUBLE_TAP;
         }
