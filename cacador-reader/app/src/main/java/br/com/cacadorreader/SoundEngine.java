@@ -1,6 +1,7 @@
 package br.com.cacadorreader;
 
 import android.media.AudioAttributes;
+import android.media.AudioManager;
 import android.media.AudioFormat;
 import android.media.AudioTrack;
 import android.os.Build;
@@ -75,7 +76,7 @@ public final class SoundEngine {
                     .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
                     .setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build();
             track = new AudioTrack(attrs, format, pcm.length * 2,
-                    AudioTrack.MODE_STATIC, AudioTrack.AUDIO_SESSION_ID_GENERATE);
+                    AudioTrack.MODE_STATIC, AudioManager.AUDIO_SESSION_ID_GENERATE);
             track.write(pcm, 0, pcm.length);
             track.setVolume(1f);
             track.play();
