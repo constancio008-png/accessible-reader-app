@@ -1,93 +1,59 @@
 package br.com.cacadorreader;
-
+import android.content.Context;
 import android.media.AudioAttributes;
-import android.media.AudioManager;
-import android.media.AudioFormat;
-import android.media.AudioTrack;
-import android.os.Build;
-
-/**
- * Efeitos acústicos próprios do Lume: discretos, orgânicos e sem estética de videogame.
- * Os sons são sintetizados localmente; não há arquivos ou serviços externos.
- */
+import android.media.MediaPlayer;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+/** External UI sound pack player. Assets from THISUX Sound Kit, MIT license. */
 public final class SoundEngine {
-    public static final int FOCUS = 0;
-    public static final int ACTIVATE = 1;
-    public static final int BACK = 2;
-    public static final int BOUNDARY = 3;
-    public static final int TOGGLE = 4;
-
-    private static final int RATE = 22050;
-    private SoundEngine() {}
-
-    public static void play(int kind, float volume) {
-        final float safeVolume = Math.max(0f, Math.min(1f, volume));
-        if (safeVolume <= 0.01f) return;
-        Thread worker = new Thread(() -> renderAndPlay(kind, safeVolume), "Lume-AudioCue");
-        worker.setDaemon(true);
-        worker.start();
-    }
-
-    private static void renderAndPlay(int kind, float volume) {
-        int durationMs = kind == ACTIVATE ? 210 : (kind == BACK ? 170 : 105);
-        int count = RATE * durationMs / 1000;
-        short[] pcm = new short[count];
-        long seed = System.nanoTime();
-        for (int i = 0; i < count; i++) {
-            float t = (float)i / RATE;
-            float duration = (float)count / RATE;
-            float x = (float)i / Math.max(1, count - 1);
-            float attack = Math.min(1f, x * (kind == FOCUS ? 45f : 18f));
-            float release = Math.min(1f, (1f - x) * (kind == FOCUS ? 13f : 7f));
-            float envelope = attack * release;
-            double wave = 0;
-            if (kind == FOCUS) {
-                wave = Math.sin(2 * Math.PI * 620 * t) * 0.48
-                     + Math.sin(2 * Math.PI * 930 * t) * 0.16;
-            } else if (kind == ACTIVATE) {
-                double glide = 440 + 210 * x;
-                wave = Math.sin(2 * Math.PI * glide * t) * 0.42
-                     + Math.sin(2 * Math.PI * glide * 1.5 * t) * 0.14
-                     + Math.sin(2 * Math.PI * 220 * t) * 0.10;
-            } else if (kind == BACK) {
-                double glide = 540 - 210 * x;
-                wave = Math.sin(2 * Math.PI * glide * t) * 0.38
-                     + Math.sin(2 * Math.PI * glide * 1.25 * t) * 0.10;
-            } else if (kind == BOUNDARY) {
-                wave = Math.sin(2 * Math.PI * 330 * t) * 0.38
-                     + Math.sin(2 * Math.PI * 247 * t) * 0.12;
-            } else {
-                wave = Math.sin(2 * Math.PI * 520 * t) * 0.34
-                     + Math.sin(2 * Math.PI * 680 * t) * 0.12;
-            }
-            // A hint of filtered-like noise softens the timbre without sounding like a game beep.
-            seed = seed * 1103515245L + 12345L;
-            double noise = (((seed >>> 16) & 0x7fff) / 16384.0 - 1.0) * 0.018;
-            double sample = (wave + noise) * envelope * volume * 0.42;
-            pcm[i] = (short)Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, (int)(sample * 32767)));
-        }
-
-        AudioTrack track = null;
-        try {
-            AudioAttributes attrs = new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build();
-            AudioFormat format = new AudioFormat.Builder().setSampleRate(RATE)
-                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build();
-            track = new AudioTrack(attrs, format, pcm.length * 2,
-                    AudioTrack.MODE_STATIC, AudioManager.AUDIO_SESSION_ID_GENERATE);
-            track.write(pcm, 0, pcm.length);
-            track.setVolume(1f);
-            track.play();
-            Thread.sleep(durationMs + 80L);
-        } catch (Exception ignored) {
-            // Efeitos sonoros nunca devem interromper a leitura por voz.
-        } finally {
-            if (track != null) {
-                try { track.stop(); } catch (Exception ignored) {}
-                track.release();
-            }
-        }
-    }
+ public static final int FOCUS=0, ACTIVATE=1, BACK=2, BOUNDARY=3, TOGGLE=4;
+ public static final String[] PACK_NAMES={"Suave","Navegação","Clássico","Vivo"};
+ private static final ExecutorService IO=Executors.newSingleThreadExecutor();
+ private static final String BASE="https://raw.githubusercontent.com/thisuxhq/soundkit/main/low-volume-20db/";
+ private static Context app; private static int selectedPack=0; private static float masterVolume=0.55f; private static MediaPlayer player;
+ private SoundEngine(){}
+ public static void init(Context c){app=c.getApplicationContext();}
+ public static void configure(int pack,float volume){selectedPack=Math.max(0,Math.min(3,pack));masterVolume=Math.max(0f,Math.min(1f,volume));}
+ public static void play(int kind,float volume){
+  if(app==null)return; final int pack=selectedPack; final String path=pathFor(pack,kind);
+  final float gain=Math.max(0f,Math.min(1f,volume));
+  if(gain<0.01f)return;
+  IO.execute(()->{try{
+   File f=new File(app.getCacheDir(),"lume_sfx_"+path.replace('/','_'));
+   if(!f.exists()||f.length()<500)download(path,f);
+   app.getMainExecutor().execute(()->playFile(f,gain));
+  }catch(Exception ignored){}});
+ }
+ private static String pathFor(int p,int k){
+  switch(p){
+   case 0:return k==ACTIVATE?"complete-and-success/success-1.m4a":k==BOUNDARY?"errors-and-cancel/error-1.m4a":k==BACK?"buttons-and-navigation/collapse.m4a":"buttons-and-navigation/button-1.m4a";
+   case 1:return k==ACTIVATE?"buttons-and-navigation/expand.m4a":k==BOUNDARY?"errors-and-cancel/cancel-1.m4a":k==BACK?"buttons-and-navigation/tab-2.m4a":"buttons-and-navigation/tab-1.m4a";
+   case 2:return k==ACTIVATE?"complete-and-success/complete-1.m4a":k==BOUNDARY?"errors-and-cancel/error-2.m4a":k==BACK?"buttons-and-navigation/button-3.m4a":"buttons-and-navigation/button-2.m4a";
+   default:return k==ACTIVATE?"complete-and-success/success-3.m4a":k==BOUNDARY?"notifications-and-alerts/alert-1.m4a":k==BACK?"notifications-and-alerts/notification-2.m4a":"buttons-and-navigation/button-5.m4a";
+  }
+ }
+ private static void download(String path,File dest)throws Exception{
+  HttpURLConnection c=(HttpURLConnection)new URL(BASE+path).openConnection();c.setConnectTimeout(7000);c.setReadTimeout(7000);
+  try{if(c.getResponseCode()!=200)throw new java.io.IOException("HTTP "+c.getResponseCode());
+   File tmp=new File(dest.getAbsolutePath()+".tmp");
+   try(InputStream in=c.getInputStream();FileOutputStream out=new FileOutputStream(tmp)){byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1)out.write(b,0,n);}
+   if(!tmp.renameTo(dest)){tmp.delete();throw new java.io.IOException("cache");}
+  }finally{c.disconnect();}
+ }
+ private static void playFile(File f,float volume){
+  try{
+   if(player!=null){try{player.stop();}catch(Exception ignored){}player.release();}
+   player=new MediaPlayer();
+   AudioAttributes a=new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build();
+   player.setAudioAttributes(a);player.setDataSource(f.getAbsolutePath());player.setVolume(volume,volume);
+   player.setOnCompletionListener(mp->{mp.release();if(player==mp)player=null;});
+   player.setOnErrorListener((mp,w,e)->{mp.release();if(player==mp)player=null;return true;});
+   player.prepare();player.start();
+  }catch(Exception ignored){if(player!=null){try{player.release();}catch(Exception ignoredAgain){}player=null;}}
+ }
 }
