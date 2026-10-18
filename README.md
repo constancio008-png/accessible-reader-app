@@ -1,8 +1,8 @@
 # Lume — leitor de telas para Android
 
-O **Lume** é um leitor de telas experimental para Android, desenvolvido para explorar uma experiência de navegação acessível em português brasileiro.
+O **Lume 1.0.0-beta.1** é a primeira Beta pública planejada do leitor de telas para Android, com interface visual de alto contraste e navegação falada em português brasileiro.
 
-> **Estado do projeto:** experimental. A compilação do APK foi concluída, mas o funcionamento ainda precisa ser validado em aparelhos reais. O Lume não deve ser tratado como substituto confiável do TalkBack neste momento.
+> **Estado do projeto:** Beta pública em validação. A compilação automatizada foi executada; os gestos ainda precisam ser validados em aparelhos reais. O Lume não é um substituto confiável do TalkBack.
 
 ## Objetivos
 
@@ -14,9 +14,10 @@ O **Lume** é um leitor de telas experimental para Android, desenvolvido para ex
 
 ## O que a versão experimental contém
 
+- Interface renovada com tema escuro, alto contraste, controles maiores e botões destacados.
 - Tela de configurações para velocidade da fala, detalhamento da narração, sons e vibração.
 - Atalho para as configurações de acessibilidade do Android.
-- Serviço de acessibilidade que tenta anunciar foco, mudanças de tela e elementos selecionados.
+- Serviço de acessibilidade com ajustes para eventos de exploração por toque e toque duplo.
 - Gestos experimentais para mover o foco, rolar e ativar o item selecionado.
 
 ## Limitações conhecidas
@@ -35,7 +36,7 @@ O **Lume** é um leitor de telas experimental para Android, desenvolvido para ex
 4. Extraia o ZIP e instale o APK no Android, permitindo a instalação para essa origem caso o sistema solicite.
 5. Abra o Lume e use o botão para acessar as configurações de acessibilidade e ativar o serviço.
 
-O APK de depuração é para testes, não uma versão estável de distribuição.
+O APK de depuração é para testes, não uma versão estável de distribuição. O pacote `br.com.cacadorreader` foi mantido e o `versionCode` passou para 6. Atenção: atualizar por cima também exige a mesma chave de assinatura. Como as compilações debug do CI podem usar chaves diferentes, a instalação sobre uma versão anterior ainda não está garantida; não desinstale a versão atual antes de verificar isso.
 
 ## Compilar
 
