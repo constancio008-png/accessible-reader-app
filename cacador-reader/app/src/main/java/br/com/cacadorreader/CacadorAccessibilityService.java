@@ -167,11 +167,13 @@ public class CacadorAccessibilityService extends AccessibilityService {
         CharSequence text = node.getContentDescription();
         if (text == null || text.length() == 0) text = node.getText();
         String label = text == null ? "" : text.toString().trim();
-        if (!label.isEmpty()) return label;
-        if (node.isCheckable()) return node.isChecked() ? "Marcado" : "Desmarcado";
-        if (node.isClickable()) return "Botão sem descrição";
-        if (node.isScrollable()) return "Área rolável";
-        return verbosity >= 2 ? "Elemento" : "";
+        if (label.isEmpty()) {
+            if (node.isCheckable()) label = "Controle de seleção";
+            else if (node.isClickable()) label = "Elemento interativo";
+            else if (node.isScrollable()) label = "Área rolável";
+            else if (verbosity >= 2) label = "Elemento";
+        }
+        return label;
     }
 
     private void announceItem(String message, AccessibilityNodeInfo node) {
@@ -180,9 +182,19 @@ public class CacadorAccessibilityService extends AccessibilityService {
         vibrate(12);
         if (verbosity == 0 && !node.isClickable() && !node.isCheckable()) return;
         String output = message;
-        if (verbosity >= 2) {
+        if (verbosity >= 1) {
+            String className = node.getClassName() == null ? "" : node.getClassName().toString();
+            if (className.contains("CompoundButton") || className.contains("CheckBox")) output += ", caixa de seleção";
+            else if (className.contains("Switch")) output += ", interruptor";
+            else if (className.contains("EditText")) output += ", campo de edição";
+            else if (node.isClickable()) output += ", botão";
             if (node.isCheckable()) output += node.isChecked() ? ", marcado" : ", desmarcado";
-            if (node.isClickable()) output += ", toque duas vezes para ativar";
+            if (Build.VERSION.SDK_INT >= 30) {
+                CharSequence state = node.getStateDescription();
+                if (state != null && state.length() > 0 && !output.toLowerCase(java.util.Locale.ROOT).contains(state.toString().toLowerCase(java.util.Locale.ROOT))) output += ", " + state;
+            }
+            if (!node.isEnabled()) output += ", desativado";
+            else if (verbosity >= 2 && node.isClickable()) output += ", toque duas vezes para ativar";
         }
         speak(output);
     }
