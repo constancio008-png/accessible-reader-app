@@ -251,8 +251,6 @@ public class MainActivity extends Activity {
         toggle.setTextSize(17);
         toggle.setTextColor(Color.rgb(245, 248, 255));
         toggle.setButtonTintList(ColorStateList.valueOf(Color.rgb(65, 210, 190)));
-        toggle.setTextColor(Color.rgb(245, 248, 255));
-        toggle.setButtonTintList(ColorStateList.valueOf(Color.rgb(65, 210, 190)));
         toggle.setContentDescription(title + ". " + description);
         toggle.setChecked(prefs.getBoolean(key, defaultValue));
         toggle.setPadding(0, dp(10), 0, dp(10));
@@ -279,10 +277,6 @@ public class MainActivity extends Activity {
         button.setBackground(rounded(Color.rgb(25, 40, 65), Color.rgb(49, 190, 174), 16));
         button.setPadding(dp(18), dp(10), dp(18), dp(10));
         button.setElevation(dp(2));
-        button.setTextColor(Color.rgb(245, 248, 255));
-        button.setBackground(rounded(Color.rgb(25, 40, 65), Color.rgb(49, 190, 174), 16));
-        button.setPadding(dp(18), dp(10), dp(18), dp(10));
-        button.setElevation(dp(2));
         button.setContentDescription(title + ". " + description);
         button.setAllCaps(false);
         button.setMinHeight(dp(60));
@@ -291,22 +285,6 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams params = fullWidth(dp(64));
         params.topMargin = dp(6);
         panel.addView(button, params);
-    }
-
-    private GradientDrawable rounded(int fill, int stroke, int radiusDp) {
-        GradientDrawable shape = new GradientDrawable();
-        shape.setColor(fill);
-        shape.setCornerRadius(dp(radiusDp));
-        shape.setStroke(dp(1), stroke);
-        return shape;
-    }
-
-    private void tintSeekBar(SeekBar bar) {
-        if (android.os.Build.VERSION.SDK_INT >= 21) {
-            bar.setProgressTintList(ColorStateList.valueOf(Color.rgb(65, 210, 190)));
-            bar.setThumbTintList(ColorStateList.valueOf(Color.rgb(245, 248, 255)));
-            bar.setProgressBackgroundTintList(ColorStateList.valueOf(Color.rgb(57, 75, 102)));
-        }
     }
 
     private GradientDrawable rounded(int fill, int stroke, int radiusDp) {
