@@ -1,6 +1,6 @@
 # Lume — leitor de telas para Android
 
-O **Lume 1.0.0-beta.1** é a primeira Beta pública planejada do leitor de telas para Android, com interface visual de alto contraste e navegação falada em português brasileiro.
+O **Lume 1.0.0-beta.2** é a primeira Beta pública planejada do leitor de telas para Android, com interface visual de alto contraste e navegação falada em português brasileiro.
 
 > **Estado do projeto:** Beta pública em validação. A compilação automatizada foi executada; os gestos ainda precisam ser validados em aparelhos reais. O Lume não é um substituto confiável do TalkBack.
 
@@ -15,6 +15,10 @@ O **Lume 1.0.0-beta.1** é a primeira Beta pública planejada do leitor de telas
 ## O que a versão experimental contém
 
 - Interface renovada com tema escuro, alto contraste, controles maiores e botões destacados.
+- Diálogo de boas-vindas na primeira abertura.
+- Quatro esquemas de efeitos sonoros externos: Suave, Navegação, Clássico e Vivo. Os arquivos são baixados no primeiro uso e armazenados em cache no aparelho.
+- A fala e os efeitos sonoros usam atributos de áudio de acessibilidade; o serviço solicita o canal de volume de acessibilidade do Android.
+- Narração contextual do tipo de controle e dos estados disponíveis, como botão, caixa de seleção, interruptor, marcado, desmarcado e desativado.
 - Tela de configurações para velocidade da fala, detalhamento da narração, sons e vibração.
 - Atalho para as configurações de acessibilidade do Android.
 - Serviço de acessibilidade com ajustes para eventos de exploração por toque e toque duplo.
@@ -36,7 +40,7 @@ O **Lume 1.0.0-beta.1** é a primeira Beta pública planejada do leitor de telas
 4. Extraia o ZIP e instale o APK no Android, permitindo a instalação para essa origem caso o sistema solicite.
 5. Abra o Lume e use o botão para acessar as configurações de acessibilidade e ativar o serviço.
 
-O APK de depuração é para testes, não uma versão estável de distribuição. O pacote `br.com.cacadorreader` foi mantido e o `versionCode` passou para 6. Atenção: atualizar por cima também exige a mesma chave de assinatura. Como as compilações debug do CI podem usar chaves diferentes, a instalação sobre uma versão anterior ainda não está garantida; não desinstale a versão atual antes de verificar isso.
+O APK de depuração é para testes, não uma versão estável de distribuição. O pacote `br.com.cacadorreader` foi mantido e o `versionCode` passou para 7. Atenção: atualizar por cima também exige a mesma chave de assinatura. Como as compilações debug do CI podem usar chaves diferentes, a instalação sobre uma versão anterior ainda não está garantida; não desinstale a versão atual antes de verificar isso.
 
 ## Compilar
 
@@ -53,3 +57,7 @@ Ao relatar uma falha, informe o modelo do aparelho, a versão do Android, o apli
 ## Licença
 
 A licença do código do Lume ainda precisa ser definida. Até que isso seja feito, a disponibilidade pública do repositório não deve ser interpretada como autorização automática para reutilizar, modificar ou redistribuir seu conteúdo.
+
+
+### Créditos dos efeitos sonoros
+Os esquemas de som usam arquivos do [THISUX Sound Kit](https://github.com/thisuxhq/soundkit), disponibilizado sob licença MIT. Os arquivos são baixados do repositório do projeto quando necessários e ficam em cache local. O aplicativo necessita de conexão à internet na primeira reprodução de cada efeito; se o download falhar, a voz continua sendo a forma principal de feedback.
