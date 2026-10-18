@@ -7,7 +7,7 @@ import android.media.AudioTrack;
 import android.os.Build;
 
 /**
- * Efeitos acústicos próprios do Caçador Reader: discretos, orgânicos e sem estética de videogame.
+ * Efeitos acústicos próprios do Lume: discretos, orgânicos e sem estética de videogame.
  * Os sons são sintetizados localmente; não há arquivos ou serviços externos.
  */
 public final class SoundEngine {
@@ -23,7 +23,7 @@ public final class SoundEngine {
     public static void play(int kind, float volume) {
         final float safeVolume = Math.max(0f, Math.min(1f, volume));
         if (safeVolume <= 0.01f) return;
-        Thread worker = new Thread(() -> renderAndPlay(kind, safeVolume), "Caçador-AudioCue");
+        Thread worker = new Thread(() -> renderAndPlay(kind, safeVolume), "Lume-AudioCue");
         worker.setDaemon(true);
         worker.start();
     }
