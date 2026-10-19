@@ -11,6 +11,11 @@ on:
 permissions:
   contents: read
 
+# Only build the newest pushed revision; older runs can otherwise publish stale APKs.
+concurrency:
+  group: lume-android-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
