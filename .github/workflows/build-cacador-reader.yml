@@ -39,13 +39,41 @@ jobs:
         shell: bash
         run: |
           sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+      - name: Preparar assinatura persistente (se configurada)
+        shell: bash
+        env:
+          LUME_KEYSTORE_BASE64: ${{ secrets.LUME_KEYSTORE_BASE64 }}
+          LUME_KEYSTORE_PASSWORD: ${{ secrets.LUME_KEYSTORE_PASSWORD }}
+          LUME_KEY_ALIAS: ${{ secrets.LUME_KEY_ALIAS }}
+          LUME_KEY_PASSWORD: ${{ secrets.LUME_KEY_PASSWORD }}
+        run: |
+          if [ -n "$LUME_KEYSTORE_BASE64" ] && [ -n "$LUME_KEYSTORE_PASSWORD" ] && [ -n "$LUME_KEY_ALIAS" ] && [ -n "$LUME_KEY_PASSWORD" ]; then
+            echo "$LUME_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/lume-release.jks"
+            echo "LUME_KEYSTORE_PATH=$RUNNER_TEMP/lume-release.jks" >> "$GITHUB_ENV"
+            echo "LUME_SIGNING_READY=true" >> "$GITHUB_ENV"
+          else
+            echo "LUME_SIGNING_READY=false" >> "$GITHUB_ENV"
+            echo "Assinatura persistente não configurada; será gerado apenas o APK de depuração."
+          fi
       - name: Compilar APK de depuração
         working-directory: cacador-reader
         run: gradle --no-daemon assembleDebug
-      - name: Publicar APK
+      - name: Compilar APK de atualização assinada
+        if: env.LUME_SIGNING_READY == 'true'
+        working-directory: cacador-reader
+        run: gradle --no-daemon assembleRelease
+      - name: Publicar APK de depuração
         uses: actions/upload-artifact@v4
         with:
           name: lume-debug-apk
           path: cacador-reader/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+      - name: Publicar APK de atualização assinada
+        if: env.LUME_SIGNING_READY == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: lume-release-apk
+          path: cacador-reader/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
