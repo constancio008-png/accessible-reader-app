@@ -298,20 +298,85 @@ public class CacadorAccessibilityService extends AccessibilityService {
 
     private void moveFocus(boolean forward) {
         AccessibilityNodeInfo root = getRootInActiveWindow();
-        if (root == null) { speak("Não há uma tela disponível para navegar."); cue(SoundEngine.BOUNDARY); return; }
+        if (root == null) {
+            cue(SoundEngine.BOUNDARY);
+            speak("Não há uma tela disponível para navegar.");
+            return;
+        }
+
         AccessibilityNodeInfo current = root.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY);
         if (current == null) current = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
-        if (current == null) current = root;
-        AccessibilityNodeInfo next = current.focusSearch(forward ? View.FOCUS_FORWARD : View.FOCUS_BACKWARD);
-        if (next == null || next.equals(current)) {
-            cue(SoundEngine.BOUNDARY); vibrate(35);
+
+        // First ask Android for the next focusable node. Some apps return null here,
+        // so use a tree-order fallback rather than making swipe navigation a dead end.
+        AccessibilityNodeInfo next = current == null ? null
+                : current.focusSearch(forward ? View.FOCUS_FORWARD : View.FOCUS_BACKWARD);
+
+        if (next == null || next.equals(current) || !isNodeNavigable(next)) {
+            java.util.ArrayList<AccessibilityNodeInfo> nodes = new java.util.ArrayList<>();
+            collectNavigableNodes(root, nodes);
+            int index = current == null ? -1 : findNodeIndex(nodes, current);
+            if (forward) {
+                int target = index < 0 ? 0 : index + 1;
+                next = target >= 0 && target < nodes.size() ? nodes.get(target) : null;
+            } else {
+                int target = index < 0 ? nodes.size() - 1 : index - 1;
+                next = target >= 0 && target < nodes.size() ? nodes.get(target) : null;
+            }
+        }
+
+        if (next == null || (current != null && next.equals(current))) {
+            cue(SoundEngine.BOUNDARY);
+            vibrate(35);
             speak(forward ? "Fim dos itens desta tela." : "Início dos itens desta tela.");
             return;
         }
-        current.performAction(AccessibilityNodeInfo.ACTION_CLEAR_ACCESSIBILITY_FOCUS);
-        next.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS);
+
+        if (current != null) current.performAction(AccessibilityNodeInfo.ACTION_CLEAR_ACCESSIBILITY_FOCUS);
+        boolean focused = next.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS);
+        if (!focused) {
+            // A few custom views reject accessibility focus; still announce the node
+            // so the gesture never appears to do absolutely nothing.
+            String label = labelFor(next);
+            if (!label.isEmpty()) {
+                cue(SoundEngine.FOCUS);
+                speak(label);
+            } else {
+                speak("Próximo elemento.");
+            }
+            return;
+        }
         String label = labelFor(next);
         announceItem(label.isEmpty() ? "Elemento" : label, next);
+    }
+
+    private boolean isNodeNavigable(AccessibilityNodeInfo node) {
+        if (node == null || !node.isVisibleToUser() || !node.isEnabled()) return false;
+        CharSequence text = node.getText();
+        CharSequence description = node.getContentDescription();
+        return node.isFocusable() || node.isClickable() || node.isCheckable()
+                || node.isEditable() || node.isScrollable()
+                || (text != null && text.length() > 0)
+                || (description != null && description.length() > 0);
+    }
+
+    private void collectNavigableNodes(AccessibilityNodeInfo node,
+            java.util.ArrayList<AccessibilityNodeInfo> result) {
+        if (node == null) return;
+        if (isNodeNavigable(node)) result.add(node);
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo child = node.getChild(i);
+            if (child != null) collectNavigableNodes(child, result);
+        }
+    }
+
+    private int findNodeIndex(java.util.ArrayList<AccessibilityNodeInfo> nodes,
+            AccessibilityNodeInfo target) {
+        for (int i = 0; i < nodes.size(); i++) {
+            AccessibilityNodeInfo node = nodes.get(i);
+            if (node.equals(target)) return i;
+        }
+        return -1;
     }
 
     private void scrollOrMove(boolean down) {
@@ -341,11 +406,40 @@ public class CacadorAccessibilityService extends AccessibilityService {
 
     private void activateFocused() {
         AccessibilityNodeInfo root = getRootInActiveWindow();
-        if (root == null) { speak("Tela indisponível."); return; }
+        if (root == null) {
+            cue(SoundEngine.BOUNDARY);
+            speak("Tela indisponível.");
+            return;
+        }
+
         AccessibilityNodeInfo focused = root.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY);
-        if (focused != null && focused.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
-            cue(SoundEngine.ACTIVATE); vibrate(25);
-        } else { cue(SoundEngine.BOUNDARY); speak("Não foi possível ativar este item."); }
+        if (focused == null) focused = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
+
+        // Try the focused node first, then clickable ancestors. Custom Android views
+        // often expose the label on a child while the click action belongs to its parent.
+        AccessibilityNodeInfo candidate = focused;
+        while (candidate != null) {
+            if (candidate.isEnabled()
+                    && candidate.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                cue(SoundEngine.ACTIVATE);
+                vibrate(25);
+                return;
+            }
+            candidate = candidate.getParent();
+        }
+
+        if (focused != null && focused.isCheckable()
+                && focused.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+            cue(SoundEngine.ACTIVATE);
+            vibrate(25);
+            return;
+        }
+
+        cue(SoundEngine.BOUNDARY);
+        vibrate(35);
+        speak(focused == null
+                ? "Nenhum item selecionado. Deslize para a esquerda ou direita para escolher um item."
+                : "Não foi possível ativar este item.");
     }
 
     public void speakGestureHelp() {
