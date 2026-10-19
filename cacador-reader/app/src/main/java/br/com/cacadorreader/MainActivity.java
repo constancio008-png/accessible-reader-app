@@ -4,215 +4,55 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.view.Gravity;
-import android.graphics.Color;
-import android.graphics.drawable.GradientDrawable;
-import android.content.res.ColorStateList;
 import android.view.View;
-import android.widget.Button;
+import android.view.Gravity;
 import android.widget.ArrayAdapter;
-import android.widget.Spinner;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
+import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
+import java.util.Locale;
 
+/**
+ * Lume 2.0 Beta 1 settings. Category-first navigation with a clear Back control.
+ * Uses native Android widgets so accessibility services can inspect their roles and states.
+ */
 public class MainActivity extends Activity {
+    private static final int BG = Color.rgb(10, 17, 32);
+    private static final int PANEL = Color.rgb(19, 29, 48);
+    private static final int TEXT = Color.rgb(245, 248, 255);
+    private static final int MUTED = Color.rgb(194, 207, 229);
+    private static final int ACCENT = Color.rgb(42, 187, 160);
+
     private SharedPreferences prefs;
     private LinearLayout panel;
     private TextView statusText;
-    private TextView rateText;
-    private TextView volumeText;
-    private TextView verbosityText;
+    private String currentPage = "home";
 
-    private int dp(float value) {
-        return (int)(value * getResources().getDisplayMetrics().density + 0.5f);
+    private int dp(float v) {
+        return (int)(v * getResources().getDisplayMetrics().density + 0.5f);
     }
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         prefs = getSharedPreferences("cacador_settings", MODE_PRIVATE);
-
-        ScrollView scroll = new ScrollView(this);
-        scroll.setFillViewport(true);
-        scroll.setBackgroundColor(Color.rgb(10, 17, 32));
-        panel = new LinearLayout(this);
-        panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding(dp(22), dp(24), dp(22), dp(28));
-        panel.setBackgroundColor(Color.rgb(10, 17, 32));
-        panel.setFocusableInTouchMode(true);
-        scroll.addView(panel);
-
-        TextView title = new TextView(this);
-        title.setText("Lume");
-        title.setTextSize(34);
-        title.setTextColor(Color.rgb(245, 248, 255));
-        title.setTypeface(null, android.graphics.Typeface.BOLD);
-        title.setContentDescription("Lume. Central de configurações do leitor de telas.");
-        panel.addView(title);
-
-        TextView intro = new TextView(this);
-        intro.setText("Seu leitor, sua maneira de ouvir. Configure voz, navegação, sons acústicos e vibração.");
-        intro.setTextSize(17);
-        intro.setTextColor(Color.rgb(194, 207, 229));
-        intro.setPadding(0, dp(10), 0, dp(18));
-        panel.addView(intro);
-
-        statusText = new TextView(this);
-        statusText.setTextSize(16);
-        statusText.setTextColor(Color.rgb(135, 245, 213));
-        statusText.setPadding(dp(14), dp(14), dp(14), dp(14));
-        statusText.setBackground(rounded(Color.rgb(20, 43, 54), Color.rgb(42, 187, 160), 14));
-        panel.addView(statusText);
-        updateStatus();
-
-        addButton("Ativar ou gerenciar o leitor", "Abre as configurações de acessibilidade do Android", () ->
-                startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
-
-        addHeading("Voz e leitura");
-        rateText = addLabel("");
-        SeekBar rate = new SeekBar(this);
-        rate.setMax(22);
-        rate.setProgress(Math.round((prefs.getFloat("speech_rate", 0.9f) - 0.5f) / 0.05f));
-        rate.setContentDescription("Velocidade da fala. De muito lenta até rápida.");
-        tintSeekBar(rate);
-        tintSeekBar(rate);
-        panel.addView(rate, fullWidth( dp(54)));
-        updateRateLabel(rate.getProgress());
-        rate.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
-                float value = 0.5f + progress * 0.05f;
-                prefs.edit().putFloat("speech_rate", value).apply();
-                updateRateLabel(progress);
-                CacadorAccessibilityService s = CacadorAccessibilityService.instance;
-                if (s != null) s.setSpeechRate(value);
-            }
-            @Override public void onStartTrackingTouch(SeekBar bar) {}
-            @Override public void onStopTrackingTouch(SeekBar bar) {
-                speak("Velocidade da fala ajustada.");
-            }
-        });
-
-        addHeading("Estilo de narração");
-        verbosityText = addLabel("");
-        SeekBar verbosity = new SeekBar(this);
-        verbosity.setMax(2);
-        verbosity.setProgress(prefs.getInt("verbosity", 1));
-        verbosity.setContentDescription("Detalhamento da narração. Essencial, padrão ou detalhado.");
-        tintSeekBar(verbosity);
-        tintSeekBar(verbosity);
-        panel.addView(verbosity, fullWidth(dp(54)));
-        updateVerbosityLabel(verbosity.getProgress());
-        verbosity.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
-                prefs.edit().putInt("verbosity", progress).apply();
-                updateVerbosityLabel(progress);
-                applySettings();
-            }
-            @Override public void onStartTrackingTouch(SeekBar bar) {}
-            @Override public void onStopTrackingTouch(SeekBar bar) { speak("Estilo de narração atualizado."); }
-        });
-
-        addHeading("Esquemas de som");
-        addLabel("Escolha uma identidade sonora para a navegação.");
-        Spinner soundPacks = new Spinner(this);
-        soundPacks.setContentDescription("Esquemas de som. Escolha entre Suave, Navegação, Clássico e Vivo.");
-        ArrayAdapter<String> packAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, SoundEngine.PACK_NAMES);
-        packAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        soundPacks.setAdapter(packAdapter);
-        soundPacks.setSelection(Math.max(0, Math.min(SoundEngine.PACK_NAMES.length - 1, prefs.getInt("sound_pack", 0))));
-        panel.addView(soundPacks, fullWidth(dp(58)));
-        soundPacks.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
-            @Override public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
-                prefs.edit().putInt("sound_pack", position).apply();
-                SoundEngine.configure(position, prefs.getFloat("sound_volume", 0.55f));
-                applySettings();
-            }
-            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) {}
-        });
-        addSwitch("Efeitos sonoros de navegação", "Sons externos baixados e guardados no aparelho após o primeiro uso.",
-                "sounds_enabled", true);
-        volumeText = addLabel("");
-        SeekBar volume = new SeekBar(this);
-        volume.setMax(100);
-        volume.setProgress(Math.round(prefs.getFloat("sound_volume", 0.55f) * 100));
-        volume.setContentDescription("Volume dos efeitos sonoros");
-        tintSeekBar(volume);
-        tintSeekBar(volume);
-        panel.addView(volume, fullWidth(dp(54)));
-        updateVolumeLabel(volume.getProgress());
-        volume.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
-                prefs.edit().putFloat("sound_volume", progress / 100f).apply();
-                updateVolumeLabel(progress);
-                applySettings();
-            }
-            @Override public void onStartTrackingTouch(SeekBar bar) {}
-            @Override public void onStopTrackingTouch(SeekBar bar) {
-                CacadorAccessibilityService s = CacadorAccessibilityService.instance;
-                if (s != null) s.testSound();
-            }
-        });
-
-        addButton("Ouvir demonstração dos sons", "Toca o efeito acústico de confirmação", () -> {
-            CacadorAccessibilityService s = CacadorAccessibilityService.instance;
-            if (s != null) s.testSound();
-            else Toast.makeText(this, "Ative o Lume primeiro.", Toast.LENGTH_LONG).show();
-        });
-
-        addHeading("Acessibilidade tátil");
-        addSwitch("Vibração discreta", "Pequenos retornos táteis ao navegar e ativar itens.",
-                "haptics_enabled", true);
-
-        addHeading("Gestos e ajuda");
-        addButton("Ouvir guia completo de gestos", "Lê os gestos disponíveis no Lume", () -> {
-            CacadorAccessibilityService s = CacadorAccessibilityService.instance;
-            if (s != null) s.speakGestureHelp();
-            else speak("Deslize para a direita para ir ao próximo item. Deslize para a esquerda para voltar. Deslize para cima ou para baixo para rolar. Toque duas vezes para ativar.");
-        });
-        addButton("Testar a voz", "Faz o leitor falar uma frase de teste", () ->
-                speak("Teste de voz do Lume. A fala está funcionando."));
-        addButton("Repetir estado do leitor", "Informa se o serviço está ativo", () -> {
-            if (CacadorAccessibilityService.instance != null)
-                speak("O serviço do Lume está ativo.");
-            else
-                speak("O serviço ainda não está ativo. Use o botão Ativar ou gerenciar o leitor.");
-        });
-
-        addHeading("Sobre");
-        TextView note = new TextView(this);
-        note.setText("Esta é uma versão experimental de um leitor de telas independente. Alguns aplicativos podem expor poucos elementos para acessibilidade, e os gestos podem variar conforme o aparelho. Mantenha um leitor confiável disponível enquanto testa.");
-        note.setTextSize(14);
-        note.setTextColor(Color.rgb(170, 187, 211));
-        note.setBackground(rounded(Color.rgb(19, 29, 48), Color.rgb(48, 67, 94), 14));
-        note.setTextColor(Color.rgb(170, 187, 211));
-        note.setBackground(rounded(Color.rgb(19, 29, 48), Color.rgb(48, 67, 94), 14));
-        note.setPadding(0, dp(4), 0, dp(18));
-        panel.addView(note);
-
-        addButton("Restaurar configurações padrão", "Restaura velocidade, sons, volume, vibração e narração", () -> {
-            prefs.edit().clear().apply();
-            recreate();
-            applySettings();
-            speak("Configurações padrão restauradas.");
-        });
-
-        setContentView(scroll);
+        if (state != null) currentPage = state.getString("page", "home");
+        renderPage(currentPage);
         showWelcomeIfNeeded();
     }
 
-    private void showWelcomeIfNeeded() {
-        if (prefs.getBoolean("welcome_shown", false)) return;
-        new AlertDialog.Builder(this)
-            .setTitle("Bem-vindo ao Lume")
-            .setMessage("O Lume é um leitor de telas experimental. Explore as configurações para escolher a voz, o nível de detalhes e um dos quatro esquemas de som. Com o serviço ativado, deslize para a direita para o próximo item, para a esquerda para voltar e toque duas vezes para ativar. Mantenha seu leitor principal disponível enquanto testa esta versão Beta.")
-            .setPositiveButton("Começar", (dialog, which) -> prefs.edit().putBoolean("welcome_shown", true).apply())
-            .setOnCancelListener(dialog -> prefs.edit().putBoolean("welcome_shown", true).apply())
-            .show();
+    @Override protected void onSaveInstanceState(Bundle out) {
+        out.putString("page", currentPage);
+        super.onSaveInstanceState(out);
     }
 
     @Override protected void onResume() {
@@ -221,12 +61,311 @@ public class MainActivity extends Activity {
         applySettings();
     }
 
+    @Override public void onBackPressed() {
+        if (!"home".equals(currentPage)) {
+            renderPage("home");
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    private void renderPage(String page) {
+        currentPage = page;
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+        scroll.setBackgroundColor(BG);
+        panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(20), dp(18), dp(20), dp(28));
+        panel.setBackgroundColor(BG);
+        panel.setFocusableInTouchMode(true);
+        scroll.addView(panel);
+        setContentView(scroll);
+
+        if ("home".equals(page)) renderHome();
+        else renderCategory(page);
+        panel.setFocusableInTouchMode(true);
+        panel.requestFocus();
+    }
+
+    private TextView text(String value, int size, int color, boolean bold) {
+        TextView t = new TextView(this);
+        t.setText(value);
+        t.setTextSize(size);
+        t.setTextColor(color);
+        t.setGravity(Gravity.CENTER_VERTICAL);
+        if (bold) t.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        t.setPadding(0, dp(5), 0, dp(5));
+        return t;
+    }
+
+    private GradientDrawable rounded(int fill, int stroke, int radius) {
+        GradientDrawable d = new GradientDrawable();
+        d.setColor(fill);
+        d.setCornerRadius(dp(radius));
+        d.setStroke(dp(1), stroke);
+        return d;
+    }
+
+    private void renderHome() {
+        panel.addView(text("Lume", 34, TEXT, true));
+        panel.addView(text("Versão 2.0 Beta 1 · Central de acessibilidade", 16, MUTED, false));
+        panel.addView(text("Configurações organizadas por categoria. Abra uma categoria para encontrar seus controles e use Voltar para retornar a esta tela.", 16, MUTED, false));
+
+        statusText = text("", 16, Color.rgb(135, 245, 213), true);
+        statusText.setPadding(dp(14), dp(12), dp(14), dp(12));
+        statusText.setBackground(rounded(Color.rgb(20, 43, 54), ACCENT, 14));
+        LinearLayout.LayoutParams statusParams = fullWidth(dp(64));
+        statusParams.topMargin = dp(10);
+        statusParams.bottomMargin = dp(10);
+        panel.addView(statusText, statusParams);
+        updateStatus();
+
+        addButton("Ativar ou gerenciar o leitor", "Abre as configurações de acessibilidade do Android", () ->
+            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
+
+        addCategory("Voz e leitura", "Velocidade da fala e nível de detalhamento", "voice");
+        addCategory("Navegação e gestos", "Ajuda de gestos e comportamento de navegação", "navigation");
+        addCategory("Sons e vibração", "Esquemas sonoros, volume e retorno tátil", "sound");
+        addCategory("Acessibilidade e privacidade", "Recomendações para uso seguro e acessível", "accessibility");
+        addCategory("Sobre e diagnóstico", "Estado do serviço, testes e versão", "about");
+
+        panel.addView(text("Dica: mantenha o TalkBack ou outro leitor confiável disponível durante os testes desta versão beta.", 14, MUTED, false));
+    }
+
+    private void renderCategory(String page) {
+        addButton("Voltar", "Retorna à central de configurações", () -> renderPage("home"));
+        String title;
+        if ("voice".equals(page)) title = "Voz e leitura";
+        else if ("navigation".equals(page)) title = "Navegação e gestos";
+        else if ("sound".equals(page)) title = "Sons e vibração";
+        else if ("accessibility".equals(page)) title = "Acessibilidade e privacidade";
+        else title = "Sobre e diagnóstico";
+        panel.addView(text(title, 28, TEXT, true));
+        panel.addView(text("As alterações são salvas automaticamente.", 15, MUTED, false));
+
+        if ("voice".equals(page)) renderVoice();
+        else if ("navigation".equals(page)) renderNavigation();
+        else if ("sound".equals(page)) renderSound();
+        else if ("accessibility".equals(page)) renderAccessibility();
+        else renderAbout();
+    }
+
+    private void renderVoice() {
+        addHeading("Velocidade da fala");
+        SeekBar rate = new SeekBar(this);
+        rate.setMax(22);
+        rate.setProgress(Math.max(0, Math.min(22, Math.round((prefs.getFloat("speech_rate", 0.9f) - 0.5f) / 0.05f))));
+        rate.setContentDescription("Velocidade da fala, de muito lenta a rápida");
+        panel.addView(rate, fullWidth(dp(58)));
+        TextView value = text("", 16, MUTED, false);
+        panel.addView(value);
+        updateRateLabel(value, rate.getProgress());
+        rate.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            public void onProgressChanged(SeekBar b, int p, boolean user) {
+                float v = 0.5f + p * 0.05f;
+                prefs.edit().putFloat("speech_rate", v).apply();
+                updateRateLabel(value, p);
+                CacadorAccessibilityService s = CacadorAccessibilityService.instance;
+                if (s != null) s.setSpeechRate(v);
+            }
+            public void onStartTrackingTouch(SeekBar b) {}
+            public void onStopTrackingTouch(SeekBar b) { speak("Velocidade da fala ajustada."); }
+        });
+
+        addHeading("Detalhamento da narração");
+        String[] levels = {"Essencial", "Padrão", "Detalhado"};
+        Spinner verbosity = spinner(levels, Math.max(0, Math.min(2, prefs.getInt("verbosity", 1))), "Nível de detalhamento da narração");
+        panel.addView(verbosity, fullWidth(dp(58)));
+        verbosity.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            public void onItemSelected(android.widget.AdapterView<?> p, View v, int pos, long id) {
+                prefs.edit().putInt("verbosity", pos).apply();
+                applySettings();
+            }
+            public void onNothingSelected(android.widget.AdapterView<?> p) {}
+        });
+        addButton("Testar a voz", "Ouve uma frase de demonstração", () -> speak("Teste de voz do Lume. A narração está funcionando."));
+        addButton("Abrir configurações de síntese de voz", "Permite escolher o mecanismo de voz instalado no Android", () -> {
+            try { startActivity(new Intent("com.android.settings.TTS_SETTINGS")); }
+            catch (Exception e) { Toast.makeText(this, "Abra as configurações de texto para fala do Android.", Toast.LENGTH_LONG).show(); }
+        });
+    }
+
+    private void renderNavigation() {
+        addHeading("Ajuda de navegação");
+        addButton("Ouvir guia completo de gestos", "Lê os gestos disponíveis", () -> {
+            CacadorAccessibilityService s = CacadorAccessibilityService.instance;
+            if (s != null) s.speakGestureHelp();
+            else speak("Deslize para a direita para avançar, para a esquerda para voltar, para cima ou para baixo para rolar e toque duas vezes para ativar.");
+        });
+        addButton("Abrir configurações de acessibilidade", "Gerencie serviços e recursos de acessibilidade do Android", () ->
+            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
+        addHeading("Nota sobre conflitos");
+        panel.addView(text("O Android pode limitar a exploração por toque a um único serviço ativo. Por isso, o Lume não pode garantir que seus gestos de exploração funcionem ao mesmo tempo que os do TalkBack em todos os aparelhos. Mantenha um leitor principal disponível e teste um serviço por vez.", 15, MUTED, false));
+        addHeading("Comportamento atual");
+        panel.addView(text("Deslizar para a direita ou esquerda tenta mover o foco entre elementos. Deslizar para cima ou para baixo tenta rolar uma área rolável. Toque duplo ativa o elemento focado.", 15, MUTED, false));
+    }
+
+    private void renderSound() {
+        addHeading("Esquema de sons");
+        Spinner packs = spinner(SoundEngine.PACK_NAMES, Math.max(0, Math.min(SoundEngine.PACK_NAMES.length - 1, prefs.getInt("sound_pack", 0))), "Esquema de efeitos sonoros");
+        panel.addView(packs, fullWidth(dp(58)));
+        packs.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            public void onItemSelected(android.widget.AdapterView<?> p, View v, int pos, long id) {
+                prefs.edit().putInt("sound_pack", pos).apply();
+                SoundEngine.configure(pos, prefs.getFloat("sound_volume", 0.55f));
+                applySettings();
+            }
+            public void onNothingSelected(android.widget.AdapterView<?> p) {}
+        });
+        addSwitch("Efeitos sonoros de navegação", "Reproduz sons curtos para indicar foco e ativação.", "sounds_enabled", true);
+
+        addHeading("Volume dos efeitos");
+        SeekBar volume = new SeekBar(this);
+        volume.setMax(100);
+        volume.setProgress(Math.round(prefs.getFloat("sound_volume", 0.55f) * 100));
+        volume.setContentDescription("Volume dos efeitos sonoros");
+        panel.addView(volume, fullWidth(dp(58)));
+        TextView volumeLabel = text("", 16, MUTED, false);
+        panel.addView(volumeLabel);
+        updateVolumeLabel(volumeLabel, volume.getProgress());
+        volume.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            public void onProgressChanged(SeekBar b, int p, boolean user) {
+                prefs.edit().putFloat("sound_volume", p / 100f).apply();
+                updateVolumeLabel(volumeLabel, p);
+                applySettings();
+            }
+            public void onStartTrackingTouch(SeekBar b) {}
+            public void onStopTrackingTouch(SeekBar b) { CacadorAccessibilityService s = CacadorAccessibilityService.instance; if (s != null) s.testSound(); }
+        });
+        addSwitch("Vibração discreta", "Pequenos retornos táteis ao navegar e ativar itens.", "haptics_enabled", true);
+        addButton("Ouvir demonstração dos sons", "Toca o som de confirmação", () -> {
+            CacadorAccessibilityService s = CacadorAccessibilityService.instance;
+            if (s != null) s.testSound(); else speak("Ative o Lume primeiro.");
+        });
+    }
+
+    private void renderAccessibility() {
+        addHeading("Privacidade durante a digitação");
+        panel.addView(text("O Lume não repete automaticamente cada caractere digitado. Isso ajuda a reduzir a exposição acidental de senhas e mensagens, mas também significa que esta beta ainda não oferece eco de digitação configurável.", 15, MUTED, false));
+        addHeading("Uso seguro");
+        panel.addView(text("O Lume é experimental. Alguns aplicativos não expõem todos os controles às APIs de acessibilidade. Não desative seu leitor principal até verificar que a navegação essencial funciona.", 15, MUTED, false));
+        addButton("Abrir configurações de acessibilidade", "Gerencie os serviços instalados", () ->
+            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
+        addButton("Restaurar configurações do Lume", "Apaga preferências e retorna aos valores padrão", () ->
+            new AlertDialog.Builder(this).setTitle("Restaurar configurações?")
+                .setMessage("Velocidade, detalhamento, sons, volume e vibração voltarão aos valores padrão.")
+                .setNegativeButton("Cancelar", null)
+                .setPositiveButton("Restaurar", (d, w) -> {
+                    prefs.edit().clear().putBoolean("welcome_shown", true).apply();
+                    applySettings();
+                    renderPage("home");
+                    speak("Configurações restauradas.");
+                }).show());
+    }
+
+    private void renderAbout() {
+        addHeading("Estado do serviço");
+        TextView state = text("", 17, TEXT, true);
+        panel.addView(state);
+        state.setText(CacadorAccessibilityService.instance != null ? "O serviço do Lume está ativo." : "O serviço do Lume não está ativo.");
+        addButton("Repetir estado em voz alta", "Anuncia se o serviço está ativo", () -> speak(CacadorAccessibilityService.instance != null ? "O serviço do Lume está ativo." : "O serviço do Lume ainda não está ativo."));
+        addButton("Abrir configurações de acessibilidade", "Ative ou gerencie o serviço", () ->
+            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
+        addHeading("Versão");
+        panel.addView(text("Lume 2.0 Beta 1\nPacote: br.com.cacadorreader\nVersão experimental. Testes em aparelho real ainda são necessários.", 15, MUTED, false));
+        addHeading("Verificação rápida");
+        addButton("Testar voz e sons", "Testa o canal de voz e o efeito de confirmação", () -> {
+            speak("Diagnóstico do Lume. Teste de voz iniciado.");
+            CacadorAccessibilityService s = CacadorAccessibilityService.instance;
+            if (s != null) s.testSound();
+        });
+    }
+
+    private void addCategory(String title, String subtitle, String page) {
+        Button b = new Button(this);
+        b.setText(title + "\n" + subtitle + "\nAbrir categoria");
+        b.setTextSize(16);
+        b.setTextColor(TEXT);
+        b.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+        b.setAllCaps(false);
+        b.setPadding(dp(16), dp(12), dp(16), dp(12));
+        b.setBackground(rounded(PANEL, Color.rgb(48, 67, 94), 14));
+        b.setContentDescription(title + ". " + subtitle + ". Toque duas vezes para abrir.");
+        LinearLayout.LayoutParams lp = fullWidth(dp(88));
+        lp.topMargin = dp(6);
+        lp.bottomMargin = dp(6);
+        panel.addView(b, lp);
+        b.setOnClickListener(v -> renderPage(page));
+    }
+
+    private void addHeading(String value) {
+        TextView t = text(value, 19, TEXT, true);
+        t.setPadding(0, dp(18), 0, dp(8));
+        panel.addView(t);
+    }
+
+    private void addButton(String title, String description, Runnable action) {
+        Button b = new Button(this);
+        b.setText(title);
+        b.setTextSize(16);
+        b.setAllCaps(false);
+        b.setTextColor(TEXT);
+        b.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+        b.setPadding(dp(14), dp(10), dp(14), dp(10));
+        b.setBackground(rounded(PANEL, Color.rgb(48, 67, 94), 12));
+        b.setContentDescription(title + ". " + description);
+        LinearLayout.LayoutParams lp = fullWidth(dp(58));
+        lp.topMargin = dp(5);
+        lp.bottomMargin = dp(5);
+        panel.addView(b, lp);
+        b.setOnClickListener(v -> action.run());
+    }
+
+    private void addSwitch(String title, String description, String key, boolean defaultValue) {
+        Switch sw = new Switch(this);
+        sw.setText(title);
+        sw.setTextSize(16);
+        sw.setTextColor(TEXT);
+        sw.setPadding(dp(4), dp(10), dp(4), dp(10));
+        sw.setContentDescription(title + ". " + description);
+        sw.setChecked(prefs.getBoolean(key, defaultValue));
+        panel.addView(sw, fullWidth(dp(64)));
+        TextView hint = text(description, 14, MUTED, false);
+        panel.addView(hint);
+        sw.setOnCheckedChangeListener((button, checked) -> {
+            prefs.edit().putBoolean(key, checked).apply();
+            applySettings();
+        });
+    }
+
+    private Spinner spinner(String[] values, int selected, String description) {
+        Spinner sp = new Spinner(this);
+        sp.setContentDescription(description);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, values);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        sp.setAdapter(adapter);
+        sp.setSelection(selected);
+        return sp;
+    }
+
+    private LinearLayout.LayoutParams fullWidth(int height) {
+        return new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, height);
+    }
+
+    private void updateRateLabel(TextView target, int progress) {
+        target.setText("Velocidade: " + String.format(Locale.forLanguageTag("pt-BR"), "%.2f", 0.5f + progress * 0.05f) + "x");
+    }
+
+    private void updateVolumeLabel(TextView target, int progress) {
+        target.setText("Volume dos efeitos: " + progress + "%");
+    }
+
     private void updateStatus() {
         if (statusText == null) return;
-        boolean active = CacadorAccessibilityService.instance != null;
-        statusText.setText(active
-                ? "Estado: leitor ativado."
-                : "Estado: leitor não ativado. Use o botão abaixo para abrir as configurações.");
+        statusText.setText(CacadorAccessibilityService.instance != null
+            ? "Estado: leitor ativado."
+            : "Estado: leitor não ativado. Abra as configurações de acessibilidade para ativá-lo.");
     }
 
     private void applySettings() {
@@ -234,106 +373,19 @@ public class MainActivity extends Activity {
         if (s != null) s.applySettings();
     }
 
-    private void speak(String text) {
+    private void speak(String message) {
         CacadorAccessibilityService s = CacadorAccessibilityService.instance;
-        if (s != null) s.speak(text);
-        else Toast.makeText(this, text, Toast.LENGTH_LONG).show();
+        if (s != null) s.speak(message);
+        else Toast.makeText(this, message, Toast.LENGTH_LONG).show();
     }
 
-    private void updateRateLabel(int progress) {
-        if (rateText != null) rateText.setText("Velocidade da fala: " + String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", 0.5f + progress * 0.05f) + "x");
-    }
-
-    private void updateVolumeLabel(int progress) {
-        if (volumeText != null) volumeText.setText("Volume dos sons: " + progress + "%");
-    }
-
-    private void updateVerbosityLabel(int progress) {
-        if (verbosityText != null) {
-            String[] labels = {"Essencial — só informações importantes", "Padrão — equilíbrio entre detalhe e rapidez", "Detalhado — inclui instruções e estados"};
-            verbosityText.setText(labels[Math.max(0, Math.min(2, progress))]);
-        }
-    }
-
-    private void addHeading(String text) {
-        TextView heading = new TextView(this);
-        heading.setText(text);
-        heading.setTextSize(21);
-        heading.setTextColor(Color.rgb(98, 224, 205));
-        heading.setTypeface(null, android.graphics.Typeface.BOLD);
-        heading.setPadding(0, dp(26), 0, dp(9));
-        panel.addView(heading);
-    }
-
-    private TextView addLabel(String text) {
-        TextView label = new TextView(this);
-        label.setText(text);
-        label.setTextSize(16);
-        label.setTextColor(Color.rgb(235, 241, 252));
-        label.setPadding(0, dp(8), 0, dp(4));
-        panel.addView(label);
-        return label;
-    }
-
-    private void addSwitch(String title, String description, String key, boolean defaultValue) {
-        Switch toggle = new Switch(this);
-        toggle.setText(title);
-        toggle.setTextSize(17);
-        toggle.setTextColor(Color.rgb(245, 248, 255));
-        toggle.setButtonTintList(ColorStateList.valueOf(Color.rgb(65, 210, 190)));
-        toggle.setContentDescription(title + ". " + description);
-        toggle.setChecked(prefs.getBoolean(key, defaultValue));
-        toggle.setPadding(0, dp(10), 0, dp(10));
-        panel.addView(toggle, fullWidth(dp(62)));
-        TextView detail = new TextView(this);
-        detail.setText(description);
-        detail.setTextSize(14);
-        detail.setTextColor(Color.rgb(170, 187, 211));
-        detail.setPadding(0, 0, 0, dp(8));
-        panel.addView(detail);
-        toggle.setOnCheckedChangeListener((button, checked) -> {
-            prefs.edit().putBoolean(key, checked).apply();
-            applySettings();
-            CacadorAccessibilityService s = CacadorAccessibilityService.instance;
-            if (s != null) s.speak(title + (checked ? " ativado." : " desativado."));
-        });
-    }
-
-    private void addButton(String title, String description, Runnable action) {
-        Button button = new Button(this);
-        button.setText(title);
-        button.setTextSize(16);
-        button.setTextColor(Color.rgb(245, 248, 255));
-        button.setBackground(rounded(Color.rgb(25, 40, 65), Color.rgb(49, 190, 174), 16));
-        button.setPadding(dp(18), dp(10), dp(18), dp(10));
-        button.setElevation(dp(2));
-        button.setContentDescription(title + ". " + description);
-        button.setAllCaps(false);
-        button.setMinHeight(dp(60));
-        button.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
-        button.setOnClickListener(v -> action.run());
-        LinearLayout.LayoutParams params = fullWidth(dp(64));
-        params.topMargin = dp(6);
-        panel.addView(button, params);
-    }
-
-    private GradientDrawable rounded(int fill, int stroke, int radiusDp) {
-        GradientDrawable shape = new GradientDrawable();
-        shape.setColor(fill);
-        shape.setCornerRadius(dp(radiusDp));
-        shape.setStroke(dp(1), stroke);
-        return shape;
-    }
-
-    private void tintSeekBar(SeekBar bar) {
-        if (android.os.Build.VERSION.SDK_INT >= 21) {
-            bar.setProgressTintList(ColorStateList.valueOf(Color.rgb(65, 210, 190)));
-            bar.setThumbTintList(ColorStateList.valueOf(Color.rgb(245, 248, 255)));
-            bar.setProgressBackgroundTintList(ColorStateList.valueOf(Color.rgb(57, 75, 102)));
-        }
-    }
-
-    private LinearLayout.LayoutParams fullWidth(int height) {
-        return new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, height);
+    private void showWelcomeIfNeeded() {
+        if (prefs.getBoolean("welcome_shown", false)) return;
+        new AlertDialog.Builder(this)
+            .setTitle("Bem-vindo ao Lume 2.0")
+            .setMessage("Esta é uma versão beta com configurações organizadas por categoria. Abra uma categoria, ajuste os controles e use Voltar para retornar. O Lume ainda precisa ser validado em aparelhos reais; mantenha um leitor principal disponível.")
+            .setPositiveButton("Começar", (d, w) -> prefs.edit().putBoolean("welcome_shown", true).apply())
+            .setOnCancelListener(d -> prefs.edit().putBoolean("welcome_shown", true).apply())
+            .show();
     }
 }
