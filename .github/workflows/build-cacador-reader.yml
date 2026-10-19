@@ -39,6 +39,11 @@ jobs:
         shell: bash
         run: |
           sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+      - name: Inspeção automática do Lume antes da compilação
+        run: python3 scripts/lume_preflight.py
+      - name: Testes unitários e análise Android Lint
+        working-directory: cacador-reader
+        run: gradle --no-daemon testDebugUnitTest lintDebug
       - name: Preparar assinatura persistente (se configurada)
         shell: bash
         env:
