@@ -6,6 +6,8 @@ import android.content.SharedPreferences;
 import android.graphics.Rect;
 import android.view.MotionEvent;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
@@ -29,6 +31,8 @@ public class CacadorAccessibilityService extends AccessibilityService {
     private long lastSpokenAt = 0L;
     private long lastCueAt = 0L;
     private String lastExploredLabel = "";
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private Runnable pendingContentAnnouncement;
 
     @Override public void onServiceConnected() {
         super.onServiceConnected();
@@ -55,7 +59,12 @@ public class CacadorAccessibilityService extends AccessibilityService {
                 | AccessibilityEvent.TYPE_ANNOUNCEMENT
                 | AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED
                 | AccessibilityEvent.TYPE_VIEW_HOVER_ENTER
-                | AccessibilityEvent.TYPE_VIEW_HOVER_EXIT;
+                | AccessibilityEvent.TYPE_VIEW_HOVER_EXIT
+                | AccessibilityEvent.TYPE_VIEW_SELECTED
+                | AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED
+                | AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED
+                | AccessibilityEvent.TYPE_VIEW_SCROLLED
+                | AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED;
         info.feedbackType = AccessibilityServiceInfo.FEEDBACK_SPOKEN;
         info.notificationTimeout = 100;
         info.flags |= AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
@@ -145,6 +154,49 @@ public class CacadorAccessibilityService extends AccessibilityService {
             if (source != null) announceItem(labelFor(source), source);
             return;
         }
+        if (type == AccessibilityEvent.TYPE_VIEW_SELECTED) {
+            AccessibilityNodeInfo selected = event.getSource();
+            if (selected != null) {
+                String label = labelFor(selected);
+                if (!label.isEmpty() && shouldSpeak(label)) {
+                    cue(SoundEngine.FOCUS);
+                    speak(label);
+                }
+            }
+            return;
+        }
+        if (type == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED
+                || type == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED) {
+            // Do not echo typed content: this avoids reading passwords or private messages aloud.
+            if (verbosity >= 2 && type == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED) {
+                AccessibilityNodeInfo editor = event.getSource();
+                if (editor != null && editor.isEditable() && !editor.isPassword()) {
+                    speak("Campo de texto.");
+                }
+            }
+            return;
+        }
+        if (type == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
+            if (verbosity >= 2) {
+                speak("Conteúdo rolado.");
+            }
+            return;
+        }
+        if (type == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) {
+            CharSequence notification = event.getContentDescription();
+            if ((notification == null || notification.length() == 0) && !event.getText().isEmpty()) {
+                notification = event.getText().get(0);
+            }
+            if (notification != null && shouldSpeak(notification.toString())) {
+                cue(SoundEngine.FOCUS);
+                speak(notification.toString());
+            }
+            return;
+        }
+        if (type == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            scheduleContentAnnouncement();
+            return;
+        }
         if (type == AccessibilityEvent.TYPE_VIEW_CLICKED) {
             cue(SoundEngine.ACTIVATE);
             vibrate(22);
@@ -166,14 +218,34 @@ public class CacadorAccessibilityService extends AccessibilityService {
         }
     }
 
+    private void scheduleContentAnnouncement() {
+        if (pendingContentAnnouncement != null) {
+            mainHandler.removeCallbacks(pendingContentAnnouncement);
+        }
+        pendingContentAnnouncement = () -> {
+            AccessibilityNodeInfo root = getRootInActiveWindow();
+            if (root == null) return;
+            AccessibilityNodeInfo focused = root.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY);
+            if (focused == null) focused = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
+            if (focused == null) return;
+            String label = labelFor(focused);
+            if (!label.isEmpty() && shouldSpeak(label)) {
+                announceItem(label, focused);
+            }
+        };
+        // Content-change events can arrive in bursts. Wait briefly so we announce the final state.
+        mainHandler.postDelayed(pendingContentAnnouncement, 220);
+    }
+
     private String labelFor(AccessibilityNodeInfo node) {
         CharSequence text = node.getContentDescription();
         if (text == null || text.length() == 0) text = node.getText();
         String label = text == null ? "" : text.toString().trim();
         if (label.isEmpty()) {
             if (node.isCheckable()) label = "Controle de seleção";
-            else if (node.isClickable()) label = "Elemento interativo";
+            else if (node.isEditable()) label = "Campo de texto";
             else if (node.isScrollable()) label = "Área rolável";
+            else if (node.isClickable()) label = "Elemento interativo";
             else if (verbosity >= 2) label = "Elemento";
         }
         return label;
@@ -189,7 +261,9 @@ public class CacadorAccessibilityService extends AccessibilityService {
             String className = node.getClassName() == null ? "" : node.getClassName().toString();
             if (className.contains("CompoundButton") || className.contains("CheckBox")) output += ", caixa de seleção";
             else if (className.contains("Switch")) output += ", interruptor";
-            else if (className.contains("EditText")) output += ", campo de edição";
+            else if (className.contains("RadioButton")) output += ", opção";
+            else if (node.isEditable()) output += ", campo de texto";
+            else if (node.isScrollable()) output += ", área rolável";
             else if (node.isClickable()) output += ", botão";
             if (node.isCheckable()) output += node.isChecked() ? ", marcado" : ", desmarcado";
             if (Build.VERSION.SDK_INT >= 30) {
@@ -323,6 +397,7 @@ public class CacadorAccessibilityService extends AccessibilityService {
     @Override public void onInterrupt() { if (tts != null) tts.stop(); }
 
     @Override public void onDestroy() {
+        if (pendingContentAnnouncement != null) mainHandler.removeCallbacks(pendingContentAnnouncement);
         instance = null;
         if (tts != null) { tts.stop(); tts.shutdown(); }
         super.onDestroy();
