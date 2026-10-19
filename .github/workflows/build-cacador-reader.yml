@@ -5,6 +5,7 @@ on:
     branches: [master]
     paths:
       - 'cacador-reader/**'
+      - 'scripts/**'
       - '.github/workflows/build-cacador-reader.yml'
   workflow_dispatch:
 
@@ -63,6 +64,16 @@ jobs:
       - name: Compilar APK de depuração
         working-directory: cacador-reader
         run: gradle --no-daemon assembleDebug
+      - name: Testar o Lume em um Android virtual
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          emulator-options: -no-window -no-audio -no-boot-anim -camera-back none -camera-front none
+          script: python3 scripts/lume_emulator_smoke.py
       - name: Compilar APK de atualização assinada
         if: env.LUME_SIGNING_READY == 'true'
         working-directory: cacador-reader
