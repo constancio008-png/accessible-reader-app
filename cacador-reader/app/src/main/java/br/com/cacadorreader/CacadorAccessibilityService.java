@@ -229,7 +229,7 @@ public class CacadorAccessibilityService extends AccessibilityService {
             if (focused == null) focused = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
             if (focused == null) return;
             String label = labelFor(focused);
-            if (!label.isEmpty() && shouldSpeak(label)) {
+            if (!label.isEmpty()) {
                 announceItem(label, focused);
             }
         };
