@@ -2,7 +2,7 @@
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeViewFocused|typeViewAccessibilityFocused|typeViewClicked|typeViewSelected|typeViewTextChanged|typeViewTextSelectionChanged|typeViewScrolled|typeWindowStateChanged|typeWindowContentChanged|typeNotificationStateChanged|typeAnnouncement|typeViewHoverEnter|typeViewHoverExit"
     android:accessibilityFeedbackType="feedbackSpoken"
-    android:notificationTimeout="100"
+    android:notificationTimeout="150"
     android:canRetrieveWindowContent="true"
     android:canPerformGestures="true"
     android:canRequestTouchExplorationMode="true"
