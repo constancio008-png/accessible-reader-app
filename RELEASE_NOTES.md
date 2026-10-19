@@ -1,17 +1,21 @@
-# Lume 1.0.0-beta.3
+# Lume 2.0 Beta 1
 
-**Status:** APK de teste em compilação automática; validação em aparelho real ainda necessária.
+**Status:** alterações enviadas ao repositório; compilação automática em andamento. Testes em aparelho real ainda são necessários.
 
-## Atualização de acessibilidade
-- Ampliada a captura de eventos para seleção de itens, alterações em campos de texto, seleção de texto, rolagem e notificações.
-- Anúncio de alterações de conteúdo com pequeno atraso para reduzir fala repetida quando a interface envia vários eventos seguidos.
-- O leitor não ecoa automaticamente o texto digitado em campos, para reduzir o risco de expor senhas ou mensagens privadas.
-- Melhor identificação de campos editáveis, áreas roláveis e opções de seleção.
-- Mantidos o pacote `br.com.cacadorreader`, os controles de voz e os esquemas de efeitos sonoros.
-- `versionCode` 8 e `versionName` `1.0.0-beta.3`.
+## Grande reformulação
+- Central de configurações organizada por categorias, com telas separadas e botão Voltar: Voz e leitura; Navegação e gestos; Sons e vibração; Acessibilidade e privacidade; Sobre e diagnóstico.
+- Controles nativos do Android para melhorar a identificação de rótulos, funções e estados por leitores de telas.
+- Melhor organização das opções e explicações mais claras sobre os limites da exploração por toque.
+- Removido o caminho manual duplicado de exploração por coordenadas para reduzir eventos e anúncios repetidos; a navegação depende dos eventos e gestos fornecidos pelo Android.
+- Configuração de eventos e gestos alinhada entre o manifesto XML do serviço e o código.
+- Workflow de compilação cancela builds antigos quando uma revisão mais nova chega, reduzindo o risco de publicar um APK obsoleto.
+- Pacote mantido como `br.com.cacadorreader`; `versionCode` 9 e `versionName` `2.0-beta.1`.
 
-## Limites e validação
-O Lume utiliza APIs públicas do Android AccessibilityService. Nem todo aplicativo expõe seus elementos corretamente, e esta versão ainda precisa de testes em aparelho real para validar foco, gestos, eventos e convivência com outros leitores de tela. Não desative o TalkBack principal antes de concluir os testes.
+## Atualização por cima da versão anterior: atenção à assinatura
+Manter o mesmo identificador do pacote é necessário, mas não suficiente. O Android também exige que o APK novo seja assinado pela mesma chave do APK instalado. Os APKs de depuração produzidos em runners temporários do GitHub Actions podem receber chaves diferentes entre execuções; nesse caso, o Android recusará a atualização. Para garantir atualizações futuras sem desinstalar, é necessário configurar uma chave de assinatura persistente e protegida como GitHub Actions Secrets. Não desinstale a versão atual até verificar a assinatura do APK novo.
 
-## APK
+## Limites e segurança
+O Android normalmente permite que apenas um serviço controle a exploração por toque por vez. Portanto, não é tecnicamente possível prometer que o Lume e o TalkBack controlarão os mesmos gestos de exploração por toque simultaneamente em todos os aparelhos. Mantenha um leitor confiável disponível enquanto testa o Lume.
+
+## APK de teste
 Acesse [GitHub Actions](https://github.com/constancio008-png/accessible-reader-app/actions), abra a execução mais recente concluída com sucesso e baixe o artefato `lume-debug-apk`.
