@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeViewFocused|typeViewAccessibilityFocused|typeViewClicked|typeWindowStateChanged|typeWindowContentChanged|typeAnnouncement|typeViewHoverEnter|typeViewHoverExit"
+    android:accessibilityEventTypes="typeViewFocused|typeViewAccessibilityFocused|typeViewClicked|typeViewSelected|typeViewTextChanged|typeViewTextSelectionChanged|typeViewScrolled|typeWindowStateChanged|typeWindowContentChanged|typeNotificationStateChanged|typeAnnouncement|typeViewHoverEnter|typeViewHoverExit"
     android:accessibilityFeedbackType="feedbackSpoken"
     android:notificationTimeout="100"
     android:canRetrieveWindowContent="true"
