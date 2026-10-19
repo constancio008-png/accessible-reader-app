@@ -1,5 +1,9 @@
 plugins { id 'com.android.application' }
 
+def lumeKeystorePath = System.getenv('LUME_KEYSTORE_PATH')
+
+def lumeSigningReady = lumeKeystorePath != null && !lumeKeystorePath.isEmpty()
+
 android {
     namespace 'br.com.cacadorreader'
     compileSdk 35
@@ -10,5 +14,22 @@ android {
         targetSdk 35
         versionCode 9
         versionName '2.0-beta.1'
+    }
+
+    signingConfigs {
+        release {
+            if (lumeSigningReady) {
+                storeFile file(lumeKeystorePath)
+                storePassword System.getenv('LUME_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('LUME_KEY_ALIAS')
+                keyPassword System.getenv('LUME_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (lumeSigningReady) signingConfig signingConfigs.release
+        }
     }
 }
